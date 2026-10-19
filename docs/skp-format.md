@@ -1109,10 +1109,6 @@ sont lus pour les points d'attache (§3.5).
   `--batch dossier fichiers…` ; `--check fichiers…` : une ligne par fichier (lu, octets
   restants). `ESQ_SKP_TRACE=1` : chaque objet MFC et chaque étape du modèle, avec sa
   position, sur la sortie d'erreur.
-- Les arguments passés par registre restent cachés (la caméra du modèle, §3.3) :
-  `AsmDump` autour de l'appel les montre.
-- `cargo run -p esq-skp --example skp_probe -- fichier.skp [classe]` : SDK et lecteur natif
-  côte à côte (lignes canoniques).
 - `cargo test -p esq-skp --test native_oracle -- --nocapture` : comparaison au SDK sur tout le
   corpus et couverture ; `ESQ_ORACLE_DIFF=classe,classe` montre les différences.
 - `powershell -File tools\skp-reel.ps1 [dossier]` : télécharge le corpus de fichiers réels
@@ -1127,12 +1123,6 @@ sont lus pour les points d'attache (§3.5).
   de `tests/data` ; `cargo test --release -p esq-skp --test native_mutations -- --ignored
   --nocapture` : tout le corpus réel (`ESQ_MUT_CASES` : cas au plus par fichier,
   `ESQ_MUT_FILTER` : fichiers dont le chemin contient le texte).
-- Écriture (§8) : `--example skp_wcmp -- [--version 2020] [--show classe,…|structure] fichiers…`
-  (les deux écrivains côte à côte, relus par le SDK et nativement) ; `--example mfc_cmp --
-  [--version 2020] fichiers…` (premier octet qui diffère de l'archive MFC du SDK, et l'objet
-  où il est ; `ESQ_SKP_WTRACE=1`) ; `--example mfc_vmaps` (tables de versions du SDK),
-  `--example mfc_styles`, `--example vff_survey` (suites d'enregistrements par classe),
-  `--example vff_marker` (entrées de l'archive, taille des vignettes, somme du marqueur).
 
 ## 8. Écriture (`native::write`)
 
@@ -1174,10 +1164,10 @@ les propose toutes dans sa boîte (`skpsave.rs`).
   (`material.xml` puis images), styles, `model.dat` en dernier.
 - `meta.dat` : version, GUID, références des vignettes (0x2328 › 0x2329/0x232A) quand il y en
   a, nom, description, unité, historique (« SketchUp », heure).
-- `model.dat` dans l'ordre des écrivains de SketchUp.exe (…) ; ids : 1 style,
+- `model.dat` dans l'ordre des écrivains de SketchUp.exe ; ids : 1 style,
   2–3 polices (Arial, Tahoma), 4 Layer0 et 5 sa matière, 6–17 les 12 styles de ligne, puis à
-  la suite. Structure identique à celle du SDK (toutes les suites d'enregistrements, `skp_wcmp
-  --show structure`), sauf la boîte des définitions qu'il ne met pas.
+  la suite. Structure identique à celle du SDK (toutes les suites d'enregistrements), sauf la
+  boîte des définitions qu'il ne met pas.
 - `material.xml` comme SketchUp (`%.17g`/`%.8g` du C, `pbrMR` toujours) ; `style.xml` :
   le style par défaut, comme le SDK (les options de rendu du modèle sont dans `model.dat`).
 - Vignette : `meta/model_thumbnail.png` et `meta/preview_thumbnail.png`, 256 × 256 comme
@@ -1254,7 +1244,7 @@ de SketchUp. Repris du SDK : le haut d'une caméra mis d'équerre avec la visée
   vers le bas, écrits dans les 14 versions qui ont des placages : relus nativement et par le
   SDK, le placage est celui de départ à 1e-7 motif près, aux sommets, au centre et hors de la
   face (le long de la normale, et le long de la projection pour un côté projeté).
-- Avec MFC, `mfc_cmp` : archive identique à l'octet près à celle du SDK (hors GUID, heures,
+- Avec MFC : archive identique à l'octet près à celle du SDK (hors GUID, heures,
   ids compacts, doubles recalculés, ordre des polices) pour 644 des 672 fichiers MFC du corpus
   (chacun dans sa version) ; les 28 autres sont `image` et `kitchen`, où le SDK nomme la
   texture d'une image d'après son fichier temporaire.
