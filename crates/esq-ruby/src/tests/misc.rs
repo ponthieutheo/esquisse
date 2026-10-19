@@ -369,11 +369,14 @@ fn test_extension_notifications() {
     );
 }
 
+/// A fresh folder under the temp folder, by its long name: the temp folder may be given in 8.3
+/// short names (`C:\Users\RUNNER~1\…` on CI machines), and `Dir.glob` answers with the long ones.
 fn temp_dir(tag: &str) -> std::path::PathBuf {
     let d = std::env::temp_dir().join(format!("esq-misc-{tag}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&d);
     std::fs::create_dir_all(&d).unwrap();
-    d
+    let long = std::fs::canonicalize(&d).unwrap();
+    std::path::PathBuf::from(long.to_string_lossy().trim_start_matches(r"\\?\"))
 }
 
 #[test]

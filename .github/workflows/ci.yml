@@ -61,4 +61,4 @@ jobs:
       - name: Tests
         env:
           ESQ_REQUIRE_RUBY: "1"
-        run: cargo test --workspace
+        run: cargo test --workspace --no-fail-fast
