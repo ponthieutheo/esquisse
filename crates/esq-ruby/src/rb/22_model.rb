@@ -429,7 +429,7 @@ module Sketchup
     end
 
     # ---- recherche d'entités
-    # Les arguments de find_entity_by_id et find_entity_by_persistent_id 
+    # Les arguments de find_entity_by_id et find_entity_by_persistent_id
     # au moins un ; un seul tableau donne la liste à chercher (non vide) et un
     # tableau en réponse ; une seule valeur, la réponse seule.
     def __id_list(args)

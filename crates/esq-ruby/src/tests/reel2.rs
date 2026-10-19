@@ -859,7 +859,7 @@ fn what_glues_is_checked_like_sketchup() {
 }
 
 /// `EntitiesBuilder` passait par Entities : une face au sol était retournée, les trous et un
-/// tableau de points refusés, vertex_at créait un sommet. Comme SketchUp 
+/// tableau de points refusés, vertex_at créait un sommet. Comme SketchUp
 /// la face garde l'orientation de ses points,
 /// `holes:` fait des trous, add_edge et add_edges prennent un tableau, add_edges rend nil pour
 /// un bord trop court, vertex_at rend nil où il n'y a rien, `new` n'existe pas.
@@ -1039,7 +1039,7 @@ fn observers_hear_an_operation_when_it_is_committed() {
     assert_eq!(r, "[true, 0, true, true, true]");
 }
 
-/// Un tableau de deux nombres n'est en 2D que si l'autre côté l'est aussi 
+/// Un tableau de deux nombres n'est en 2D que si l'autre côté l'est aussi
 /// avec un Point3d ou un Vector3d, il est lu en 3D (z = 0).
 #[test]
 fn two_number_arrays_meet_3d_in_3d() {
