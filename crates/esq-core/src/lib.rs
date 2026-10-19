@@ -1,0 +1,47 @@
+//! Esquisse core: the modelling engine, independent of any UI.
+
+pub mod angle;
+pub mod arc_edit;
+pub mod arcs;
+pub mod attach;
+pub mod classify;
+pub mod comments;
+pub mod content;
+pub mod curves;
+pub mod dwg;
+pub mod fold;
+pub mod followme;
+pub mod groups;
+pub mod hatch;
+pub mod hlr;
+pub mod image;
+pub mod instance_ops;
+pub mod intersect;
+pub mod io;
+pub mod matchphoto;
+pub mod math;
+pub mod meta;
+pub mod model;
+pub mod model_behavior;
+pub mod offset;
+pub mod ops;
+pub mod photo;
+pub mod repair;
+pub mod sandbox;
+pub mod sculpt;
+pub mod section;
+pub mod slice_export;
+pub mod solid;
+pub mod sun;
+pub mod tess;
+pub mod texpos;
+pub mod text3d;
+pub mod units;
+pub mod untrusted;
+pub mod validity;
+pub mod vector2d;
+pub mod walk;
+pub mod zip;
+
+pub use glam;
+pub use model::*;

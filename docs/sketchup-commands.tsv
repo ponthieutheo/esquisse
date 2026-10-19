@@ -1,0 +1,186 @@
+3d text	Texte 3D
+accessibility preferences	Ouvrir les paramètres d'accessibilité
+ai assistant	AI Assistant
+align view	Aligner la vue
+ambient occlusion	Occlusion ambiante
+area > selection	Surface
+camera/field of view	Champ angulaire
+camera/look around	Pivoter
+camera/orbit	Orbite
+camera/pan	Panoramique
+camera/parallel	Projection parallèle
+camera/perspective	Perspective
+camera/position camera	Positionner la caméra
+camera/two-point perspective	Perspective à deux points
+camera/walk	Visite
+camera/zoom	Zoom
+camera/zoom extents	Zoom étendu
+camera/zoom window	Fenêtre de zoom
+check for update	Rechercher des mises à jour
+color tags	Colorer par étiquette
+create new model	Créer un nouveau modèle
+create scene	Créer une scène
+deselect edges	Désélectionner les arêtes
+deselect faces	Désélectionner les faces
+diffusion	AI Render
+display crosshairs	Voir les réticules
+divide	Diviser
+download	Télécharger SKP
+edit/close group/component	Fermer le groupe/composant
+edit/copy	Copier
+edit/cut	Couper
+edit/delete	Supprimer
+edit/delete guides	Supprimer les guides
+edit/hide	Masquer
+edit/lock	Verrouiller
+edit/make component	Créer un composant
+edit/make group	Créer un groupe
+edit/paste	Coller
+edit/paste in place	Coller sur place
+edit/redo	Rétablir
+edit/select all	Tout sélectionner
+edit/select none	Tout désélectionner
+edit/undo	Annuler
+edit/unhide all	Tout révéler
+edit/unhide last	Afficher le plus récent
+edit/unhide selected	Afficher Sélection
+edit/unlock all	Tout déverrouiller
+edit/unlock selected	Déverrouiller la sélection
+edit/weld edges	Souder les arêtes
+enable grid snapping	Mises en place de grilles
+explode	Éclater
+export 3ds	Exporter sous 3DS
+export dae	Exporter sous Collada
+export dwg (2d)	Exporter sous DWG (2D)
+export dwg (3d)	Exporter sous DWG (3D)
+export dxf (2d)	Exporter sous DXF (2D)
+export dxf (3d)	Exporter sous DXF (3D)
+export fbx	Exporter sous FBX
+export kmz	Exporter sous KMZ
+export obj	Exporter sous OBJ
+export png	Exporter l'image
+export stl	Exporter sous STL
+export vrml	Exporter sous VRML
+export xsi	Exporter sous XSI
+extension manager	Gestionnaire d’extensions
+extension warehouse	Extension Warehouse
+flip along tool	Retourner
+home tab	Accueil
+insert	Insérer
+intersect faces with context	Intersection de faces avec le contexte
+intersect faces with model	Intersection des faces avec le modèle
+intersect faces with selection	Intersection de faces avec la sélection
+invert selection	Inverser la sélection
+launch 3dw	3D Warehouse
+launch settings	Paramètres
+make unique texture	Rendre la texture unique
+manage licensing	Gérer les licences
+move rotate grips	Déplacer les poignées de rotation
+new from template	Nouveau à partir du modèle
+next scene	Scène suivante
+open	Ouverte
+optimize memory	Optimiser l'utilisation de la mémoire
+orient faces	Orienter les faces
+play animation	Lancer l'animation
+position texture	Positionner la texture
+predesign	Avant-projet
+previous scene	Scène précédente
+print	Imprimer
+project texture	Projeter la texture
+purge unused	Purger les éléments inutilisés
+reset shortcuts	Réinitialiser les raccourcis
+reset texture	Réinitialiser la texture
+reverse faces	Inverser les faces
+save as	Enregistrer sous
+scenes	Scènes
+search	Rechercher dans SketchUp
+set sun location	Emplacement du soleil couchant
+shortcuts preferences	Ouvrir Raccourcis Paramètres
+show new tags	Afficher les nouveaux tags
+soften/smooth edges	Adoucir/Lisser les arêtes
+tools/2 point arc	Arc à 2 points
+tools/3 point arc	Arc par 3 points
+tools/arc	Arc
+tools/axes	Axes
+tools/circle	Cercle
+tools/comment	Ajouter un commentaire
+tools/dimension	Cotations
+tools/erase	Effacer
+tools/follow me	Suivez-moi
+tools/freehand	Main levée
+tools/intersect	Intersection
+tools/lasso	Lasso
+tools/line	Ligne
+tools/move	Déplacer
+tools/offset	Décalage
+tools/outer shell	Enveloppe externe
+tools/paint bucket	Colorier
+tools/pie	Arc du camembert
+tools/polygon	Polygone
+tools/protractor	Rapporteur
+tools/push/pull	Pousser/tirer
+tools/rectangle	Rectangle
+tools/rotate	Faire pivoter
+tools/rotated rectangle	Rectangle orienté
+tools/sample material	Échantillon Matière
+tools/scale	Échelle
+tools/section plane	Plan de section
+tools/select	Sélectionner
+tools/split	Diviser
+tools/subtract	Soustraire
+tools/tag	Étiquette
+tools/tape measure	Mètre
+tools/text	Texte
+tools/trim	Découper
+tools/union	Union
+use environment as skydome	Utiliser l'environnement comme Skydome
+use environment for reflections	Utiliser l'environnement pour la réflexion
+view preferences	Voir les préférences
+view watermarks	Afficher les filigranes
+view/axes	Voir les axes
+view/back	Vue arrière
+view/bottom	Vue d'en-bas
+view/comments	Voir les commentaires
+view/component edit/hide rest of model	Masquer le reste du modèle
+view/component edit/hide similar components	Masquer les composants similaires
+view/edge style/back edges	Voir les arêtes arrières
+view/edge style/dashes	Afficher les tirets
+view/edge style/depth cue	Arêtes avec effet de profondeur
+view/edge style/edges	Voir les arêtes
+view/edge style/endpoints	Voir les extrémités
+view/edge style/extension	Voir les extensions
+view/edge style/jitter	Voir les lignes floues
+view/edge style/profiles	Voir les profils
+view/face style/hidden line	Ligne cachée
+view/face style/monochrome	Monochrome
+view/face style/shaded	Ombré
+view/face style/shaded with photoreal materials	Matériaux photoréalistes
+view/face style/shaded with textures	Ombres et textures
+view/face style/wireframe	Filaire
+view/face style/x-ray	Radiographie
+view/fog	Voir le brouillard
+view/front	Vue avant
+view/grid	Afficher la grille
+view/guides	Voir les guides
+view/hidden geometry	Voir la géométrie cachée
+view/hidden objects	Voir les objets cachés
+view/iso	Vue isométrique
+view/left	Vue gauche
+view/rendering/edge/all same	Colorier toutes les arêtes de la même manière
+view/rendering/edge/by axis	Colorier les arêtes en fonction de l'axe
+view/rendering/edge/by material	Colorier les arêtes en fonction du matériau
+view/rendering/ground	Voir le sol
+view/rendering/sky	Voir le ciel
+view/rendering/transparent materials	Activer/Désactiver la transparence
+view/rendering/use sun for shading	Utiliser le soleil pour les ombres
+view/right	Vue droite
+view/section cuts	Voir les coupes
+view/section fill	Voir le remplissage de coupe
+view/section planes	Voir les plans de section
+view/shadows	Voir les ombres
+view/top	Vue du dessus
+welcome to sketchup	Bienvenue dans SketchUp
+workspace preferences	Ouvrir les paramètres de l'espace de travail
+zoom next	Caméra suivante
+zoom previous	Caméra précédente
+zoom selection	Zoom sur la sélection

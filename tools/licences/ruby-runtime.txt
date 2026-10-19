@@ -1,0 +1,35 @@
+Le runtime Ruby livré avec Esquisse (dossier « ruby »)
+=====================================================
+
+C'est l'interpréteur Ruby 3.2 de RubyInstaller (build x64-ucrt, celui que SketchUp 2026
+embarque aussi), tel quel : la DLL x64-ucrt-ruby320.dll, ses DLL d'accompagnement
+(bin\ruby_builtin_dlls), sa bibliothèque standard et ses gems (lib\ruby). Esquisse le charge
+au démarrage ; aucun fichier n'y est modifié. Sources : https://www.ruby-lang.org et
+https://rubyinstaller.org (https://github.com/oneclick/rubyinstaller2).
+
+- Ruby : au choix la licence Ruby (COPYING.html) ou la licence BSD à 2 clauses (BSDL.txt).
+  Les fichiers de Ruby écrits par d'autres sont listés avec leur licence dans LEGAL.html.
+- RubyInstaller : licence BSD modifiée (LICENSE-RubyInstaller.txt).
+- Chaque gem garde ses fichiers de licence dans lib\ruby\gems\3.2.0\gems\<gem>\.
+
+DLL d'accompagnement (bin\ruby_builtin_dlls), compilées par le projet MSYS2, non modifiées :
+
+  libcrypto-3-x64.dll, libssl-3-x64.dll  OpenSSL 3       Apache License 2.0
+                                                          https://www.openssl.org/source/license.html
+  libffi-8.dll                           libffi          MIT
+                                                          https://github.com/libffi/libffi/blob/master/LICENSE
+  libgmp-10.dll                          GNU MP          LGPL v3 ou GPL v2 (au choix)
+                                                          https://gmplib.org/ (sources et textes des licences)
+  libwinpthread-1.dll                    winpthreads     MIT / BSD (MinGW-w64)
+                                                          https://www.mingw-w64.org/
+  libyaml-0-2.dll                        LibYAML         MIT
+                                                          https://github.com/yaml/libyaml/blob/master/License
+  zlib1.dll                              zlib            licence zlib
+                                                          https://zlib.net/zlib_license.html
+
+libgmp-10.dll est livrée sous LGPL v3 (textes complets : LGPL-3.0.txt et GPL-3.0.txt, dans ce
+dossier) : elle est livrée comme bibliothèque dynamique distincte, non modifiée, que l'on
+peut remplacer par une autre version compatible ; ses sources sont publiées sur
+https://gmplib.org/ et https://github.com/msys2/MINGW-packages (mingw-w64-gmp).
+Les textes complets des licences Apache 2.0 et MIT figurent aussi dans
+licences\rust-crates.txt.

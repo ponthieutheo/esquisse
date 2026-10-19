@@ -1,0 +1,59 @@
+[package]
+name = "esq-app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "esquisse"
+path = "src/main.rs"
+
+[dependencies]
+esq-core.workspace = true
+esq-skp.workspace = true
+esq-ruby.workspace = true
+esq-formats.workspace = true
+serde_json.workspace = true
+serde.workspace = true
+slotmap.workspace = true
+anyhow.workspace = true
+log.workspace = true
+miniz_oxide = "0.8"
+eframe = { version = "0.37", default-features = false, features = ["wgpu", "default_fonts", "accesskit"] }
+bytemuck = { version = "1", features = ["derive"] }
+rfd = "0.17"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "bmp", "tga", "tiff", "hdr", "exr"] }
+env_logger = "0.11"
+ttf-parser = "0.25.1"
+hayro = "0.8"
+wry = "0.57.0"
+tao = "0.37.1"
+# Esquisse's own online services (services/): HTTP over rustls, passwords in the system's
+# credential store, WebDAV answers. All MIT OR Apache-2.0.
+ureq = "3"
+keyring = { version = "3", features = ["windows-native", "apple-native", "linux-native"] }
+roxmltree = "0.21"
+base64 = "0.22"
+percent-encoding = "2"
+
+# The file dialogs of File › Import / Export with SketchUp's custom controls (IFileDialog,
+# IFileDialogCustomize and their events). MIT OR Apache-2.0; wgpu already uses these crates.
+[target.'cfg(windows)'.dependencies]
+windows-core = "0.62"
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_System_Com",
+    "Win32_System_Ole",
+    "Win32_System_Threading",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_UI_Shell",
+    "Win32_UI_Shell_Common",
+    "Win32_UI_WindowsAndMessaging",
+] }
+
+[dev-dependencies]
+# Same version as the one wgpu uses: checks the shader in `cargo test`.
+naga = { version = "30.0.1", features = ["wgsl-in"] }
+# Reads the exported DWG files back (MIT OR Apache-2.0; esq-formats already uses them).
+cadkit-core = "0.3"
+cadkit-dwg = "0.3"

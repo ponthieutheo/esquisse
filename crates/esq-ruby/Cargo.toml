@@ -1,0 +1,16 @@
+[package]
+name = "esq-ruby"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+esq-core.workspace = true
+esq-skp.workspace = true
+glam.workspace = true
+slotmap.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+log.workspace = true
+libloading = "0.8"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "bmp"] }

@@ -1,0 +1,28 @@
+[workspace]
+resolver = "3"
+members = ["crates/esq-core", "crates/esq-skp", "crates/esq-ruby", "crates/esq-formats", "crates/esq-app"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+glam = { version = "0.34", features = ["serde"] }
+slotmap = { version = "1.1", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+indexmap = { version = "2", features = ["serde"] }
+earcutr = "0.5"
+anyhow = "1"
+log = "0.4"
+esq-core = { path = "crates/esq-core" }
+esq-skp = { path = "crates/esq-skp" }
+esq-ruby = { path = "crates/esq-ruby" }
+esq-formats = { path = "crates/esq-formats" }
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.release]
+debug = 1

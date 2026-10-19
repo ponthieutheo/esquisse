@@ -1,0 +1,4 @@
+# Gardés octet pour octet (pas de conversion des fins de ligne) : les schémas de buildingSMART
+# tels que publiés (empreintes dans tools/content/ifc/SOURCE.txt) et le contenu généré.
+tools/content/ifc/*.xsd -text
+content/** -text

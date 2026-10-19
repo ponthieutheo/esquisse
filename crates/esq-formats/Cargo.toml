@@ -1,0 +1,20 @@
+[package]
+name = "esq-formats"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+esq-core.workspace = true
+glam.workspace = true
+slotmap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+miniz_oxide = "0.8"
+roxmltree = "0.21"
+openusd = "0.8"
+cadkit-core = "0.3"
+cadkit-dwg = "0.3"
+cadkit-dxf = "0.3"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "bmp", "tga"] }

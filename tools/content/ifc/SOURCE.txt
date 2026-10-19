@@ -1,0 +1,38 @@
+Schémas IFC de buildingSMART International Ltd., téléchargés une fois le 16/10/2026 et
+conservés sans modification (le contenu des fichiers est intact ; seul IFC4_ADD2.xsd a été
+renommé IFC4_ADD2_TC1.xsd pour le distinguer de la version ADD2).
+
+Source : dépôt public https://github.com/buildingSMART/Standards-builds (branche main), le
+miroir des pages de https://standards.buildingsmart.org (protégées par un défi Cloudflare
+qui empêche le téléchargement direct).
+
+  IFC2X3.xsd          IFC/RELEASE/IFC2x3/TC1/XML/IFC2X3.xsd
+                      sha256 e67112920fa6750827d370a2bc42d8dc2d40f18776f91a87e8629947ba051533
+  ex.xsd              IFC/RELEASE/IFC2x3/TC1/XML/ex.xsd  (schéma commun ISO 10303-28 qu'importe IFC2X3.xsd)
+                      sha256 c9a726b71f870f6426ad396e0e91737ef5d5354e9dde23994298a8bcaa2e418f
+  IFC4_ADD2_TC1.xsd   IFC/RELEASE/IFC4/ADD2_TC1/HTML/annex/annex-a/general-usage/IFC4_ADD2.xsd
+                      (IFC 4.0.2.1, ISO 16739-1:2018)
+                      sha256 17ea0c5e81c99fc7b9d7267dd10962cf87d3fecdc94e7e9b1cdf8ee9bb9bd244
+
+Licence
+-------
+Copyright (c) buildingSMART International Ltd.
+
+- Les dépôts publics de buildingSMART (github.com/buildingSMART/IFC, IFC4.x-development)
+  déclarent : « This work is licensed under the Creative Commons Attribution-NoDerivatives
+  4.0 International License » (CC BY-ND 4.0, https://creativecommons.org/licenses/by-nd/4.0/).
+  C'est aussi la licence affichée par la documentation IFC 4.3 et 4.4.
+- L'en-tête de IFC4_ADD2_TC1.xsd ajoute : « It may be photocopied, used in software
+  development, or translated into another computer language without prior written consent
+  from buildingSMART International Limited provided that full attribution is given. Prior
+  written consent is required if changes are made to the technical specification. »
+- Attention : la page copyright.htm de 2021 des documentations IFC2x3 TC1 et IFC4 ADD2 TC1
+  (même dépôt) annonce CC BY-NC-ND 4.0 (pas d'usage commercial). Les déclarations plus
+  récentes (CC BY-ND 4.0) et l'en-tête du schéma lui-même permettent l'usage dans un
+  logiciel ; une redistribution commerciale d'Esquisse devrait faire confirmer ce point par
+  buildingSMART.
+
+Esquisse respecte ces conditions : les schémas sont livrés tels quels, avec l'attribution
+(fichier Schemas/LICENCE-buildingSMART.txt dans chaque .skc), séparés du code d'Esquisse
+(MIT). La liste des types proposés (.xsd.filter), les descriptions et les vignettes des .skc
+sont produites par crates/esq-app/src/content_gen/classifications.rs.

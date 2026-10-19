@@ -1,0 +1,17 @@
+[package]
+name = "esq-skp"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+esq-core.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+slotmap.workspace = true
+log.workspace = true
+libloading = "0.9"
+miniz_oxide = "0.8"
+# The native reader computes the average colour of old colorized textures from their image.
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "bmp"] }

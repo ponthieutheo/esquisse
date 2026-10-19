@@ -1,0 +1,23 @@
+[package]
+name = "esq-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+glam.workspace = true
+slotmap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+indexmap.workspace = true
+earcutr.workspace = true
+anyhow.workspace = true
+miniz_oxide = "0.8"
+
+[dev-dependencies]
+# Reads the DWG and DXF files `dwg` writes back (MIT OR Apache-2.0).
+cadkit-core = "0.3"
+cadkit-dwg = "0.3"
+cadkit-dxf = "0.3"
+# Loads SketchUp's own DWG importer, when installed, as a second reader in the tests (ISC).
+libloading = "0.8"

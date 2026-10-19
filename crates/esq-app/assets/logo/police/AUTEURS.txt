@@ -1,0 +1,12 @@
+Police du mot « Esquisse » dans le logo
+
+Space Grotesk Medium, de Florian Karsten.
+Copyright 2020 The Space Grotesk Project Authors (https://github.com/floriankarsten/space-grotesk)
+Licence : SIL Open Font License 1.1, texte complet dans SpaceGrotesk-OFL.txt.
+
+Fichier : SpaceGrotesk-Medium.ttf, tel que publié dans le dépôt floriankarsten/space-grotesk
+(commit 03507d024a01282884232081fc6011c09ff4e849, fonts/ttf/static/SpaceGrotesk-Medium.ttf),
+la version que Google Fonts distribue.
+
+Esquisse ne s'en sert que pour tirer les contours du mot de son logo
+(crates/esq-app/src/logo/draw.rs) ; la police n'est pas livrée avec l'application.

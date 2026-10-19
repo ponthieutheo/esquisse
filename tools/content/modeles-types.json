@@ -1,0 +1,4097 @@
+[
+  {
+    "file": "Temp01a - Simple.skp",
+    "name": "Simple",
+    "description": "This is a general user modeling template with basic styling and simple colors.",
+    "units": "Inches",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 0,
+      "ForceInchDisplay": false,
+      "LengthFormat": 1,
+      "LengthPrecision": 4,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 0.0625,
+      "LengthUnit": 0,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 0
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        191,
+        191,
+        198,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        162,
+        183,
+        198,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        191,
+        191,
+        198,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        151,
+        170,
+        136,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 9,
+      "LineExtension": 3,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        0,
+        154,
+        217,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp01b - Simple.skp",
+    "name": "Simple",
+    "description": "This is a general user modeling template with basic styling and simple colors.",
+    "units": "Meters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 4,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 4,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 0.003937007874015748,
+      "LengthUnit": 4,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 4
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        191,
+        191,
+        198,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        162,
+        183,
+        198,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        191,
+        191,
+        198,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        151,
+        170,
+        136,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 9,
+      "LineExtension": 3,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        0,
+        154,
+        217,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp02a - Vis.skp",
+    "name": "Visualization",
+    "description": "Inches",
+    "units": "Inches",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 0,
+      "ForceInchDisplay": false,
+      "LengthFormat": 1,
+      "LengthPrecision": 4,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 0.0625,
+      "LengthUnit": 0,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 0
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": true,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": true,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogEndDist": 104078348.68287224,
+      "FogStartDist": 0.0,
+      "FogUseBkColor": false,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 7,
+      "LineExtension": 2,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 6,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        198,
+        205,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 44,
+      "display": true,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 73,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1731072600,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": true
+    }
+  },
+  {
+    "file": "Temp02b - Vis.skp",
+    "name": "Visualization",
+    "description": "Millimeters",
+    "units": "Millimeters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 4,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 4,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 3.937007874015748e-6,
+      "LengthUnit": 2,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 4
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": true,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": true,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogEndDist": 104078348.68287224,
+      "FogStartDist": 0.0,
+      "FogUseBkColor": false,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 7,
+      "LineExtension": 2,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 6,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        198,
+        205,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 44,
+      "display": true,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 73,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1731072600,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": true
+    }
+  },
+  {
+    "file": "Temp03a - Arch.skp",
+    "name": "Architectural",
+    "description": "This template is for conceptual design development.",
+    "units": "Inches",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 0,
+      "ForceInchDisplay": false,
+      "LengthFormat": 1,
+      "LengthPrecision": 4,
+      "LengthSnapEnabled": true,
+      "LengthSnapLength": 0.0625,
+      "LengthUnit": 0,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 0
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 7,
+      "LineExtension": 2,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        198,
+        205,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp03b - Arch.skp",
+    "name": "Architectural",
+    "description": "This template is for conceptual design development.",
+    "units": "Millimeters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 4,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 0,
+      "LengthSnapEnabled": true,
+      "LengthSnapLength": 0.03937007874015748,
+      "LengthUnit": 2,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 4
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 7,
+      "LineExtension": 2,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        198,
+        205,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp03c - Arch.skp",
+    "name": "Architectural",
+    "description": "This template is for conceptual design development.",
+    "units": "Centimeters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 4,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 1,
+      "LengthSnapEnabled": true,
+      "LengthSnapLength": 0.03937007874015748,
+      "LengthUnit": 3,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 4
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 7,
+      "LineExtension": 2,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        198,
+        205,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp03d - Arch.skp",
+    "name": "Architectural",
+    "description": "This template is for conceptual design development.",
+    "units": "Meters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 4,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 2,
+      "LengthSnapEnabled": true,
+      "LengthSnapLength": 0.3937007874015748,
+      "LengthUnit": 4,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 4
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 7,
+      "LineExtension": 2,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        198,
+        205,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp04a - AEC.skp",
+    "name": "Plan View",
+    "description": "This template is for design detailing and construction. Also use this template for training exercises that begin in plan view.",
+    "units": "Inches",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 0,
+      "ForceInchDisplay": false,
+      "LengthFormat": 1,
+      "LengthPrecision": 4,
+      "LengthSnapEnabled": true,
+      "LengthSnapLength": 0.0625,
+      "LengthUnit": 0,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 0
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": false,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 9,
+      "LineExtension": 3,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        127,
+        127,
+        127,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        189,
+        209,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp04b - AEC.skp",
+    "name": "Plan View",
+    "description": "This template is for design detailing and construction. Also use this template for training exercises that begin in plan view.",
+    "units": "Millimeters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 4,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 0,
+      "LengthSnapEnabled": true,
+      "LengthSnapLength": 0.03937007874015748,
+      "LengthUnit": 2,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 4
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": false,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 9,
+      "LineExtension": 3,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        127,
+        127,
+        127,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        189,
+        209,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp04c - AEC.skp",
+    "name": "Plan View",
+    "description": "This template is for design detailing and construction. Also use this template for training exercises that begin in plan view.",
+    "units": "Meters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 4,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 2,
+      "LengthSnapEnabled": true,
+      "LengthSnapLength": 0.3937007874015748,
+      "LengthUnit": 4,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 4
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": false,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 9,
+      "LineExtension": 3,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        127,
+        127,
+        127,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        189,
+        209,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp05a - Urban.skp",
+    "name": "Urban Planning",
+    "description": "This template is for urban planning, geo-modeling, and surveying.",
+    "units": "Feet",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 1,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 2,
+      "LengthSnapEnabled": true,
+      "LengthSnapLength": 0.12,
+      "LengthUnit": 1,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 1
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 9,
+      "LineExtension": 3,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        104,
+        195,
+        251,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp05b - Urban.skp",
+    "name": "Urban Planning",
+    "description": "This template is for urban planning, geo-modeling, and surveying.",
+    "units": "Meters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 4,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 2,
+      "LengthSnapEnabled": true,
+      "LengthSnapLength": 0.3937007874015748,
+      "LengthUnit": 4,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 4
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        204,
+        204,
+        201,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 9,
+      "LineExtension": 3,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        104,
+        195,
+        251,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp06a - Landscape.skp",
+    "name": "Landscape",
+    "description": "This template is for landscape architecture.",
+    "units": "Inches",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 0,
+      "ForceInchDisplay": false,
+      "LengthFormat": 1,
+      "LengthPrecision": 4,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 0.0625,
+      "LengthUnit": 0,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 0
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        178,
+        190,
+        158,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        178,
+        190,
+        158,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 9,
+      "LineExtension": 3,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        159,
+        179,
+        205,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp06b - Landscape.skp",
+    "name": "Landscape",
+    "description": "This template is for landscape architecture.",
+    "units": "Meters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 4,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 2,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 0.3937007874015748,
+      "LengthUnit": 4,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 4
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        178,
+        190,
+        158,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        178,
+        190,
+        158,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 9,
+      "LineExtension": 3,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        159,
+        179,
+        205,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp07a - Woodworking.skp",
+    "name": "Woodworking",
+    "description": "Use this template for smaller scale projects such as furniture design.",
+    "units": "Inches",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 4,
+      "AreaUnit": 0,
+      "ForceInchDisplay": false,
+      "LengthFormat": 3,
+      "LengthPrecision": 6,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 0.25,
+      "LengthUnit": 0,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 4,
+      "VolumeUnit": 0
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        218,
+        216,
+        212,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": false,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        218,
+        216,
+        212,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 7,
+      "LineExtension": 2,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        63,
+        63,
+        63,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        198,
+        205,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp07b - Woodworking.skp",
+    "name": "Woodworking",
+    "description": "Use this template for smaller scale projects such as furniture design.",
+    "units": "Millimeters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 1,
+      "AreaUnit": 2,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 1,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 0.003937007874015749,
+      "LengthUnit": 2,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 1,
+      "VolumeUnit": 2
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        218,
+        216,
+        212,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": false,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        218,
+        216,
+        212,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 7,
+      "LineExtension": 2,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        63,
+        63,
+        63,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        198,
+        205,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp08a - Interiors.skp",
+    "name": "Interiors",
+    "description": "This template is for Kitchen and Bath, and Entertainment Industry professionals.",
+    "units": "Inches",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 0,
+      "ForceInchDisplay": false,
+      "LengthFormat": 3,
+      "LengthPrecision": 4,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 0.0,
+      "LengthUnit": 0,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 0
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": true,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": false,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": false,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        221,
+        221,
+        221,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 9,
+      "LineExtension": 3,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        189,
+        209,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp08b - Interiors.skp",
+    "name": "Interiors",
+    "description": "This template is for Kitchen and Bath, and Entertainment Industry professionals.",
+    "units": "Millimeters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 2,
+      "AreaUnit": 4,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 4,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 3.937007874015748e-6,
+      "LengthUnit": 2,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 2,
+      "VolumeUnit": 4
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": true,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": false,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": false,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        164,
+        178,
+        187,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        221,
+        221,
+        221,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": false,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 9,
+      "LineExtension": 3,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        63,
+        63,
+        63,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        189,
+        209,
+        208,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp09a - 3D Printing.skp",
+    "name": "3D Printing",
+    "description": "This template is for Makers",
+    "units": "Inches",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 6,
+      "AreaUnit": 0,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 6,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 1e-6,
+      "LengthUnit": 0,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 6,
+      "VolumeUnit": 0
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        218,
+        216,
+        212,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        239,
+        11,
+        21,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        218,
+        216,
+        212,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": true,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 7,
+      "LineExtension": 2,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        63,
+        63,
+        63,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        74,
+        163,
+        203,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  },
+  {
+    "file": "Temp09b - 3D Printing.skp",
+    "name": "3D Printing",
+    "description": "This template is for Makers",
+    "units": "Millimeters",
+    "units_options": {
+      "AnglePrecision": 1,
+      "AngleSnapEnabled": true,
+      "AreaPrecision": 6,
+      "AreaUnit": 2,
+      "ForceInchDisplay": false,
+      "LengthFormat": 0,
+      "LengthPrecision": 6,
+      "LengthSnapEnabled": false,
+      "LengthSnapLength": 3.937007874015748e-8,
+      "LengthUnit": 2,
+      "SnapAngle": 15.0,
+      "SuppressUnitsDisplay": false,
+      "VolumePrecision": 6,
+      "VolumeUnit": 2
+    },
+    "ro": {
+      "AmbientOcclusion": false,
+      "AmbientOcclusionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "AmbientOcclusionColorEnabled": false,
+      "AmbientOcclusionDistance": 10.0,
+      "AmbientOcclusionIntensity": 0.0,
+      "AmbientOcclusionMultiplier": 1.0,
+      "BackgroundColor": [
+        218,
+        216,
+        212,
+        255
+      ],
+      "BandColor": [
+        0,
+        0,
+        0,
+        127
+      ],
+      "ConstructionColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "DefaultSectionFillStyleEnabled": false,
+      "DepthQueWidth": 4,
+      "DisplayColorByLayer": false,
+      "DisplayDims": true,
+      "DisplayFog": false,
+      "DisplayInstanceAxes": false,
+      "DisplaySectionCuts": true,
+      "DisplaySectionPlanes": false,
+      "DisplaySketchAxes": true,
+      "DisplayText": true,
+      "DisplayWatermarks": true,
+      "DrawBackEdges": false,
+      "DrawDepthQue": false,
+      "DrawGround": false,
+      "DrawHidden": false,
+      "DrawHiddenGeometry": false,
+      "DrawHiddenObjects": false,
+      "DrawHorizon": true,
+      "DrawLineEnds": false,
+      "DrawProfilesOnly": false,
+      "DrawSilhouettes": true,
+      "DrawUnderground": true,
+      "EdgeColorMode": 1,
+      "EdgeDisplayMode": 1,
+      "EdgeType": 0,
+      "ExtendLines": false,
+      "FaceBackColor": [
+        239,
+        11,
+        21,
+        255
+      ],
+      "FaceFrontColor": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "FogColor": [
+        218,
+        216,
+        212,
+        255
+      ],
+      "FogEndDist": -1.0,
+      "FogStartDist": -1.0,
+      "FogUseBkColor": true,
+      "ForegroundColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "GroundColor": [
+        210,
+        208,
+        185,
+        255
+      ],
+      "GroundTransparency": 50,
+      "HideConstructionGeometry": false,
+      "HighlightColor": [
+        0,
+        1,
+        255,
+        255
+      ],
+      "HorizonColor": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "InactiveFade": 0.25,
+      "InactiveHidden": true,
+      "InstanceFade": 0.5,
+      "InstanceHidden": false,
+      "JitterEdges": false,
+      "LineEndWidth": 7,
+      "LineExtension": 2,
+      "LockedColor": [
+        255,
+        0,
+        0,
+        255
+      ],
+      "MaterialTransparency": true,
+      "ModelTransparency": false,
+      "RenderMode": 2,
+      "SectionActiveColor": [
+        255,
+        135,
+        0,
+        255
+      ],
+      "SectionCutDrawEdges": true,
+      "SectionCutFilled": true,
+      "SectionCutWidth": 3,
+      "SectionDefaultCutColor": [
+        0,
+        0,
+        0,
+        255
+      ],
+      "SectionDefaultFillColor": [
+        63,
+        63,
+        63,
+        255
+      ],
+      "SectionInactiveColor": [
+        112,
+        105,
+        97,
+        255
+      ],
+      "ShowViewName": true,
+      "SilhouetteWidth": 2,
+      "SkyColor": [
+        74,
+        163,
+        203,
+        255
+      ],
+      "Texture": true,
+      "TransparencySort": 0
+    },
+    "shadow": {
+      "city": "Boulder (CO)",
+      "country": "USA",
+      "dark": 45,
+      "display": false,
+      "from_edges": false,
+      "latitude": 40.018309,
+      "light": 80,
+      "longitude": -105.242139,
+      "north_angle": 0.0,
+      "on_faces": true,
+      "on_ground": true,
+      "time": 1383917400,
+      "tz_offset": -7.0,
+      "use_sun_for_shading": false
+    }
+  }
+]

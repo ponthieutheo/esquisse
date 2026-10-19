@@ -1,0 +1,64 @@
+# Format, lints et tests sous Windows. Aucun fichier de Trimble n'est nécessaire : les tests
+# qui comparent Esquisse au SDK de SketchUp ou à des corpus de fichiers réels sont sautés
+# quand ceux-ci sont absents. Le runtime Ruby vient de RubyInstaller (empreinte vérifiée).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Windows (fmt, clippy, tests)
+    runs-on: windows-2025
+    timeout-minutes: 150
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: "0"
+      RUST_TOOLCHAIN: "1.99.0"
+      RUBYINSTALLER: rubyinstaller-3.2.11-1-x64
+      RUBYINSTALLER_URL: https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-3.2.11-1/rubyinstaller-3.2.11-1-x64.7z
+      RUBYINSTALLER_SHA256: 20E56BE307AE5576C024C97A7D8784C2033E676EA8C67477DDA602B8E97FE69C
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Rust
+        shell: pwsh
+        run: |
+          rustup toolchain install $env:RUST_TOOLCHAIN --profile minimal --component rustfmt,clippy
+          rustup default $env:RUST_TOOLCHAIN
+          rustc --version
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: Ruby 3.2 (RubyInstaller)
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'ruby.7z'
+          Invoke-WebRequest -Uri $env:RUBYINSTALLER_URL -OutFile $archive
+          $hash = (Get-FileHash $archive -Algorithm SHA256).Hash
+          if ($hash -ne $env:RUBYINSTALLER_SHA256) { throw "Empreinte SHA-256 inattendue : $hash" }
+          tar -xf $archive -C $env:RUNNER_TEMP
+          powershell -NoProfile -File tools\ruby-dev.ps1 -Ruby (Join-Path $env:RUNNER_TEMP $env:RUBYINSTALLER)
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        env:
+          ESQ_REQUIRE_RUBY: "1"
+        run: cargo test --workspace

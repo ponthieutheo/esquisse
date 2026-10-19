@@ -1,0 +1,10 @@
+version: 2
+updates:
+  # Garde à jour les actions de la CI, épinglées par SHA.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

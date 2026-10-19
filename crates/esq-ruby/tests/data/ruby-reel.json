@@ -1,0 +1,128 @@
+{
+  "description": "Code Ruby réel essayé dans Esquisse : dépôts publics de l'organisation SketchUp sur GitHub, clonés (git clone --depth 1, branche main) dans %USERPROFILE%\\tools\\ruby-reel\\<dépôt>, en lecture seule. Chaque fichier exécuté a été lu en entier avant. Voir docs/ruby-reel.md.",
+  "date": "2026-10-17",
+  "depots": [
+    {
+      "nom": "testup-2",
+      "url": "https://github.com/SketchUp/testup-2",
+      "commit": "8d9c2acdb0d4a46f5e2cddc60a2fc4a0f67a09bd",
+      "licence": "MIT",
+      "execute": true,
+      "usage": "suite officielle de tests de l'API Ruby (tests/SketchUp Ruby API), lancée par crates/esq-app/src/tests/ruby_reel.rs ; TestUp::TestCase vient de src/testup/testcase.rb et sketchup_test_utilities.rb, l'interface de TestUp n'est pas chargée",
+      "fichiers_lus": [
+        "src/testup.rb",
+        "src/testup/extension.json",
+        "src/testup/minitest_setup.rb",
+        "src/testup/sketchup_test_utilities.rb",
+        "src/testup/testcase.rb",
+        "tests/SketchUp Ruby API/TC_*.rb (les 69 fichiers)",
+        "tests/SketchUp Ruby API/utils/feature_switch.rb",
+        "tests/SketchUp Ruby API/utils/frozen.rb",
+        "tests/SketchUp Ruby API/utils/image_helper.rb",
+        "tests/SketchUp Ruby API/utils/length.rb",
+        "tests/SketchUp Ruby API/utils/version_helper.rb",
+        "tests/SketchUp Ruby API/TC_LanguageHandler/Resources/en-US/invalid.strings",
+        "tests/SketchUp Ruby API/TC_LanguageHandler/Resources/en-US/valid.strings",
+        "tests/SketchUp Ruby API/TC_LanguageHandler/Resources/en-US/with-bom.strings"
+      ],
+      "exclus": [
+        "TC_Sketchup_Material#test_save_as_api_example : écrit su_test.skm dans ENV['HOME']/Desktop",
+        "src/testup/TaskbarProgress.so et tout binaire : non chargés"
+      ]
+    },
+    {
+      "nom": "sketchup-shapes",
+      "url": "https://github.com/SketchUp/sketchup-shapes",
+      "commit": "65dcd10a845c692bca8acb39730e61bf6906aad8",
+      "licence": "MIT",
+      "execute": true,
+      "usage": "extension chargée depuis un dossier Plugins temporaire ; les dix commandes du menu Dessiner > 3D Shapes lancées, formulaires validés tels quels",
+      "fichiers_lus": [
+        "src/su_shapes.rb",
+        "src/su_shapes/extension_info.txt",
+        "src/su_shapes/mesh_additions.rb",
+        "src/su_shapes/parametric.rb",
+        "src/su_shapes/shapes.rb",
+        "src/su_shapes/shapes/box.rb",
+        "src/su_shapes/shapes/cone.rb",
+        "src/su_shapes/shapes/cylinder.rb",
+        "src/su_shapes/shapes/dome.rb",
+        "src/su_shapes/shapes/helical-ramp.rb",
+        "src/su_shapes/shapes/helical-ramp-with-sides.rb",
+        "src/su_shapes/shapes/helix.rb",
+        "src/su_shapes/shapes/prism.rb",
+        "src/su_shapes/shapes/pyramid.rb",
+        "src/su_shapes/shapes/sphere.rb",
+        "src/su_shapes/shapes/torus.rb",
+        "src/su_shapes/shapes/tube.rb"
+      ],
+      "refuse": [
+        "Parametric#edit (parametric.rb) : eval de données lues dans les attributs du modèle ; la commande Modifier n'est pas lancée"
+      ]
+    },
+    {
+      "nom": "sketchup-weld",
+      "url": "https://github.com/SketchUp/sketchup-weld",
+      "commit": "76fead535797ff9e30fc0fff1383c2c3b1566147",
+      "licence": "MIT",
+      "execute": true,
+      "usage": "extension chargée ; commande Weld sur une sélection de bords",
+      "fichiers_lus": ["src/ex_weld.rb", "src/ex_weld/main.rb"]
+    },
+    {
+      "nom": "sketchup-draw-mesh",
+      "url": "https://github.com/SketchUp/sketchup-draw-mesh",
+      "commit": "3f2e2b45e65b1ffcf275da62e8f11cefee793115",
+      "licence": "MIT",
+      "execute": true,
+      "usage": "extension chargée ; outil activé, draw appelé sur une vue hors écran, bascules du menu",
+      "fichiers_lus": ["src/ex_draw_mesh.rb", "src/ex_draw_mesh/draw_mesh_tool.rb", "src/ex_draw_mesh/main.rb"]
+    },
+    {
+      "nom": "sketchup-stl",
+      "url": "https://github.com/SketchUp/sketchup-stl",
+      "commit": "0b83322e202adb6dfaeadde41168eb88ad8f6728",
+      "licence": "MIT",
+      "execute": true,
+      "usage": "extension chargée avec SKUI remplacé par un module vide ; export ASCII et binaire dans un dossier temporaire puis réimport",
+      "fichiers_lus": [
+        "src/sketchup-stl.rb",
+        "src/sketchup-stl/exporter.rb",
+        "src/sketchup-stl/importer.rb",
+        "src/sketchup-stl/loader.rb",
+        "src/sketchup-stl/translator.rb",
+        "src/sketchup-stl/utils.rb",
+        "src/sketchup-stl/webdialog_extensions.rb",
+        "src/sketchup-stl/SKUI/*.rb (les 27 fichiers)"
+      ],
+      "refuse": [
+        "SKUI/bridge.rb : eval de chaînes reçues de la page web ; tout le dossier SKUI est remplacé par module SKUI; def self.embed_in(_mod); end; end"
+      ]
+    },
+    {
+      "nom": "ruby-api-stubs",
+      "url": "https://github.com/SketchUp/ruby-api-stubs",
+      "commit": "ec2e0bff9c3e45b07e02e9efcba4a9290093646c",
+      "licence": "MIT",
+      "execute": false,
+      "usage": "lu comme référence des fonctions de haut niveau de sketchup.rb, pas exécuté",
+      "fichiers_lus": ["lib/sketchup-api-stubs/stubs/_top_level.rb"]
+    },
+    { "nom": "color-at-uv", "url": "https://github.com/SketchUp/color-at-uv", "commit": "5bb37f99b2ea830de0e81c0a16cf5f3c376fb9c7", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "htmldialog-examples", "url": "https://github.com/SketchUp/htmldialog-examples", "commit": "130205067a7e64e8c32b4bad5bb78d1f425cb036", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "htmldialog-inputbox", "url": "https://github.com/SketchUp/htmldialog-inputbox", "commit": "6fd65540220982570403bc1f4654caf98388e403", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "interactive-sketchup-ruby-api-documentation", "url": "https://github.com/SketchUp/interactive-sketchup-ruby-api-documentation", "commit": "e7ed9b9933699d4981d60231283ab2552683c011", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "RetroUp", "url": "https://github.com/SketchUp/RetroUp", "commit": "d4c094165119efde62ac481615d01ec4c1df855d", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "sketchup-annotations", "url": "https://github.com/SketchUp/sketchup-annotations", "commit": "e14b9020b372741a8f873825d6a351724befdd09", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "sketchup-attribute-helper", "url": "https://github.com/SketchUp/sketchup-attribute-helper", "commit": "328e773ee83f6b5fe276b4463e3570b93ac82ccd", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "sketchup-diagnostics", "url": "https://github.com/SketchUp/sketchup-diagnostics", "commit": "7d72dd8e2a229beb24e80b3b9a0acc613f06f525", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "sketchup-extension-vscode-project", "url": "https://github.com/SketchUp/sketchup-extension-vscode-project", "commit": "e13ba9dd01bdf4ab9392aa1c9850b73c54e381d2", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "sketchup-ply", "url": "https://github.com/SketchUp/sketchup-ply", "commit": "2ebce792625dffe5a07a8ac68ca2a0272647343d", "licence": "Apache-2.0", "execute": false, "fichiers_lus": [] },
+    { "nom": "sketchup-ruby-api-tutorials", "url": "https://github.com/SketchUp/sketchup-ruby-api-tutorials", "commit": "f9827d173c6fcec179dfba259804090aaeaad429", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "sketchup-safe-frames", "url": "https://github.com/SketchUp/sketchup-safe-frames", "commit": "6cae5a154cf03039d0066804214beae8be42df75", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "sketchup-safe-observer-events", "url": "https://github.com/SketchUp/sketchup-safe-observer-events", "commit": "95d6a2dbb916247474bfaa9d574f0b893cd77431", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "solar-north", "url": "https://github.com/SketchUp/solar-north", "commit": "004c8174b30d5e2999c166c56c7ce41bbad2274a", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "wave-function-collapse", "url": "https://github.com/SketchUp/wave-function-collapse", "commit": "f87c3ea0faf012fe625f14bcb01ab4f723d68ddd", "licence": "MIT", "execute": false, "fichiers_lus": [] },
+    { "nom": "web-based-extension-example", "url": "https://github.com/SketchUp/web-based-extension-example", "commit": "dfc8008829de3e0af8032fbf63794ad2c202b639", "licence": "MIT", "execute": false, "fichiers_lus": [] }
+  ]
+}
