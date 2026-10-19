@@ -152,11 +152,13 @@ fn model_observer_transactions() {
     ) else {
         return;
     };
-    // Opérations : annoncées par la zone modèle ; appel sans opération : transaction implicite ;
+    // Opérations : annoncées par la zone modèle, vide quand elle n'a rien changé (TestUp
+    // `TC_Sketchup_Model#test_active_path_Set_single_operation`) ; appel sans opération :
+    // transaction implicite ;
     // annulation dans l'interface : onTransactionUndo.
     assert_eq!(
         o.result,
-        "[:onTransactionStart, :onTransactionCommit, :onTransactionStart, :onTransactionCommit, \
+        "[:onTransactionStart, :onTransactionCommit, :onTransactionStart, :onTransactionEmpty, \
          :onTransactionStart, :onTransactionCommit, :onTransactionUndo]"
     );
 }
@@ -202,11 +204,13 @@ fn definition_definitions_and_dimension_observers() {
     ) else {
         return;
     };
+    // The first copy gives the definition its advanced attributes (`SU_DefinitionSet`):
+    // a change of the definition, then the copy added.
     assert_eq!(
         o.result,
-        "[[:onComponentAdded, :onComponentPropertiesChanged], [[:onComponentInstanceAdded, \"ComponentDefinition\"], \
-         [:onChangeEntity, \"ComponentDefinition\"], [:onComponentInstanceRemoved, \"ComponentDefinition\"]], \
-         [[:onTextChanged, \"DimensionLinear\"]]]"
+        "[[:onComponentAdded, :onComponentPropertiesChanged], [[:onChangeEntity, \"ComponentDefinition\"], \
+         [:onComponentInstanceAdded, \"ComponentDefinition\"], [:onChangeEntity, \"ComponentDefinition\"], \
+         [:onComponentInstanceRemoved, \"ComponentDefinition\"]], [[:onTextChanged, \"DimensionLinear\"]]]"
     );
 }
 
@@ -245,6 +249,9 @@ fn tools_stack_select_push_pop() {
     );
 }
 
+/// Les identifiants des outils abandonnés reviennent quand l'interface est au repos
+/// (`Esq::Tools.idle`), les derniers libérés d'abord : pendant un script, chaque
+/// outil choisi en a un neuf (TestUp `TC_Sketchup_Model#test_select_tool_diff_tools`).
 #[test]
 fn tools_cannot_be_instantiated_and_ids_are_reused() {
     let Some(o) = script(
@@ -254,11 +261,14 @@ fn tools_cannot_be_instantiated_and_ids_are_reused() {
          m.select_tool(Object.new); a = m.tools.active_tool_id
          m.select_tool(Object.new); b = m.tools.active_tool_id
          m.select_tool(nil)
-         [err.class, err.message, a, b]",
+         Esq::Tools.idle
+         m.select_tool(Object.new); c = m.tools.active_tool_id
+         m.select_tool(nil)
+         [err.class, err.message, a, b, c]",
     ) else {
         return;
     };
-    assert_eq!(o.result, "[TypeError, \"allocator undefined for Sketchup::Tools\", 50000, 50000]");
+    assert_eq!(o.result, "[TypeError, \"allocator undefined for Sketchup::Tools\", 50000, 50001, 50001]");
 }
 
 #[test]
@@ -420,7 +430,7 @@ fn overlays_add_enable_remove() {
     };
     assert_eq!(
         o.result,
-        "[\"esq.test.ov\", \"Mon calque\", \"Essai\", \"Extension: unknown\", true, \
+        "[\"esq.test.ov\", \"Mon calque\", \"Essai\", \"Extension: unknown\", false, \
          \"overlays must be added to a model to toggle them on/off\", \
          [\"overlay id cannot be an empty string\", \"overlay name cannot be an empty string\", \
          \"wrong number of arguments (given 1, expected 2)\", \"Cannot duplicate or clone Sketchup::Overlay.\", \

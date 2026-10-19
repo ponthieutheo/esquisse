@@ -188,6 +188,40 @@ fn locked_inferences_constrain_the_input_points() {
     assert_eq!(o.result, "[[true, [0.0, 0.0, 60.0], 1], [[0.0, 1.0, 0.0], [60.0, 150.0, -90.0], 2], false, true]");
 }
 
+/// The pick path of an input point ends with the edge it lies on, after the instances that hold
+/// it (SketchUp ; TestUp test_instance_path).
+#[test]
+fn an_input_point_path_ends_with_its_edge() {
+    let Some(i) = super::ruby::interp() else { return };
+    let mut h = ViewHost {
+        cam: crate::camera::Camera { size: esq_core::glam::DVec2::new(800.0, 600.0), ..Default::default() },
+        style: Default::default(),
+        active: None,
+        vs: Default::default(),
+    };
+    let mut m = Model::new();
+    let _g = super::ruby::HOST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let code = "m = Sketchup.active_model
+         v = m.active_view
+         d = m.definitions.add('chemin')
+         g1 = d.entities.add_group
+         g2 = g1.entities.add_group
+         g2.transform!([10, 20, 30])
+         g3 = g2.entities.add_group
+         e = g3.entities.add_line([10, 10, 10], [20, 20, 20])
+         inst = m.entities.add_instance(d, Geom::Transformation.new([20, 30, 40]))
+         v.zoom_extents
+         tr = inst.transformation * g1.transformation * g2.transformation * g3.transformation
+         s = v.screen_coords(Geom.linear_combination(0.5, e.start.position, 0.5, e.end.position).transform(tr))
+         ip = Sketchup::InputPoint.new
+         ip.pick(v, s.x, s.y)
+         [ip.instance_path.to_a == [inst, g1, g2, g3, e], ip.edge == e, ip.depth]";
+    let mut sel = Vec::new();
+    let o = esq_ruby::with_host(&mut h, || i.run(code, "chemin.rb", &mut m, &mut sel)).unwrap();
+    assert!(o.ok, "erreur Ruby: {}", o.error);
+    assert_eq!(o.result, "[true, true, 5]");
+}
+
 #[test]
 fn send_action_runs_the_application_commands() {
     let mut a = crate::app::EsquisseApp::bare(None, None);

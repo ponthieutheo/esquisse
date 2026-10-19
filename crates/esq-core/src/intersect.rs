@@ -183,8 +183,7 @@ impl Model {
         depth: usize,
         out: &mut Vec<(Poly, usize)>,
     ) {
-        let shown =
-            |hidden: bool, layer: usize| opts.hidden || (!hidden && self.layers.get(layer).is_none_or(|l| l.visible));
+        let shown = |hidden: bool, layer: usize| opts.hidden || (!hidden && self.layer_shown(layer));
         for (f, face) in ents.faces.iter() {
             if shown(face.hidden, face.layer) {
                 out.extend(Poly::new(ents, f, m).map(|p| (p, 0)));

@@ -84,7 +84,7 @@ pub struct Opts {
 }
 
 fn layer_visible(model: &Model, l: LayerIdx) -> bool {
-    model.layers.get(l).is_none_or(|x| x.visible)
+    model.layer_shown(l)
 }
 
 /// Faces, edges and instances of `ents` that the export includes.

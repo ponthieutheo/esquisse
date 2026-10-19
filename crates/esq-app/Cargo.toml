@@ -28,13 +28,6 @@ ttf-parser = "0.25.1"
 hayro = "0.8"
 wry = "0.57.0"
 tao = "0.37.1"
-# Esquisse's own online services (services/): HTTP over rustls, passwords in the system's
-# credential store, WebDAV answers. All MIT OR Apache-2.0.
-ureq = "3"
-keyring = { version = "3", features = ["windows-native", "apple-native", "linux-native"] }
-roxmltree = "0.21"
-base64 = "0.22"
-percent-encoding = "2"
 
 # The file dialogs of File › Import / Export with SketchUp's custom controls (IFileDialog,
 # IFileDialogCustomize and their events). MIT OR Apache-2.0; wgpu already uses these crates.

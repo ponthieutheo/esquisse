@@ -73,7 +73,8 @@ fn fingerprint(m: &Model, d: DefId, memo: &mut HashMap<DefId, u64>) -> u64 {
         (mat.color, mat.opacity.to_bits()).hash(h);
         mat.ext.texture.as_ref().map(|t| Arc::as_ptr(&t.image.0) as usize).hash(h);
     };
-    let tag = |h: &mut std::collections::hash_map::DefaultHasher, l: usize| m.layers.get(l).map(|l| l.visible).hash(h);
+    let tag =
+        |h: &mut std::collections::hash_map::DefaultHasher, l: usize| m.layers.get(l).map(|_| m.layer_shown(l)).hash(h);
     while let Some((x, expanded)) = stack.pop() {
         if memo.contains_key(&x) {
             continue;

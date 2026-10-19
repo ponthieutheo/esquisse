@@ -546,6 +546,26 @@ fn import(app: &mut dyn ModelApp, st: &mut ScriptState, model: &mut Model, a: &J
     Ok(json!({"ok": true}))
 }
 
+/// `DefinitionList#import`: the file through the importer of its extension, with the
+/// script's options over the saved ones (as `Model#import`), as a new definition that nothing
+/// places. `{"ctx": …}`, or `{"err": "none"}` (no importer) / `{"err": "fail"}`.
+fn import_def(app: &mut dyn ModelApp, model: &mut Model, a: &J) -> Result<J, String> {
+    let p = PathBuf::from(a["path"].as_str().ok_or("chemin manquant")?);
+    let Some(fmt) = ImportFormat::from_path(&p) else { return Ok(json!({"err": "none"})) };
+    let mut o = app.formats();
+    let h = options_of(a);
+    if !h.is_empty() {
+        super::formats::apply_import(&mut o, fmt, &h, model.units);
+    }
+    match crate::formats3d::load_import(&p, &o, model.units) {
+        Ok(l) => {
+            let d = model.import_as_component(&l.model, &l.name);
+            Ok(json!({"ctx": d.data().as_ffi().to_string()}))
+        }
+        Err(_) => Ok(json!({"err": "fail"})),
+    }
+}
+
 pub fn call(
     app: &mut dyn ModelApp,
     st: &mut ScriptState,
@@ -616,8 +636,16 @@ pub fn call(
         }
         "export" => export(app, st, model, sel, args),
         "import" => import(app, st, model, args),
+        "import_def" => import_def(app, model, args),
         "open" => {
+            use esq_skp::native::container::{Newer, newer};
             let p = PathBuf::from(args["path"].as_str().ok_or("chemin manquant")?);
+            // A file of a newer SketchUp: opened after a warning when it can be read
+            // (LOAD_STATUS_SUCCESS_MORE_RECENT), not at all otherwise.
+            let level = if ext_of(&p) == "skp" { newer(&std::fs::read(&p).unwrap_or_default()) } else { Newer::No };
+            if level == Newer::Hard {
+                return Ok(json!({"status": -1}));
+            }
             let loaded = match ext_of(&p).as_str() {
                 "skp" => esq_skp::import_skp_view(&p).map(|(m, _)| m),
                 _ => esq_core::io::load_esq(&p),
@@ -630,7 +658,7 @@ pub fn call(
                     st.dirty = false;
                     st.ctx.clear();
                     st.replace = Some(Replace::Open(p));
-                    Ok(json!({"status": 0}))
+                    Ok(json!({"status": if level == Newer::Soft { 1 } else { 0 }}))
                 }
                 Err(_) => Ok(json!({"status": -1})),
             }

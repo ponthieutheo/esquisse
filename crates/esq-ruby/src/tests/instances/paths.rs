@@ -138,12 +138,14 @@ fn sketchup_set_takes_no_constructor_argument() {
     assert_eq!(r, "\"ArgumentError: wrong number of arguments (given 1, expected 0)\"");
 }
 
-/// A `.skc` archive (zip, stored entries) with a two-type schema.
+/// A `.skc` archive (zip, stored entries) with a two-type schema, `Wall` having a `Name`.
 fn write_skc(path: &std::path::Path) {
     write_skc_with(
         path,
-        "<xs:schema targetNamespace=\"http://example.org/t1\">\
+        "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:t=\"http://example.org/t1\" \
+         targetNamespace=\"http://example.org/t1\">\
          <xs:element substitutionGroup=\"t:Base\" name=\"Wall\" type=\"t:Wall\"></xs:element>\
+         <xs:complexType name=\"Wall\"><xs:sequence><xs:element name=\"Name\" type=\"xs:string\"/></xs:sequence></xs:complexType>\
          <xs:element substitutionGroup=\"t:Root\" name=\"Base\" type=\"t:Base\"></xs:element></xs:schema>",
     );
 }

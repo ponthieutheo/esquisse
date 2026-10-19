@@ -15,7 +15,7 @@ fn circle_edges_belong_to_an_arc_curve() {
     };
     assert_eq!(
         r,
-        "[12, \"Sketchup::ArcCurve\", \"ArcCurve\", 12, 12, 12, true, 31.0583, false, true, [0.0, 0.0, 0.0], 5.0, [0.0, 0.0, 1.0], 1.0, 3, 0.0, 6.283185, [0.0, 0.0, 1.0, 0.0], true, true]"
+        "[12, \"Sketchup::ArcCurve\", \"ArcCurve\", 12, 12, 13, true, 31.0583, false, true, [0.0, 0.0, 0.0], 5.0, [0.0, 0.0, 1.0], 1.0, 3, 0.0, 6.283185, [0.0, 0.0, 1.0, 0.0], true, true]"
     );
 }
 

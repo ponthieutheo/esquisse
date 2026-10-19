@@ -54,6 +54,25 @@ module Esq
     def truthy(o)
       !(o.nil? || o == false)
     end
+
+    # Entier non signé de 32 bits de SketchUp : rb_num2ll, puis RangeError
+    # « value cannot be negative » ou « value is too large ».
+    def num2uint(o)
+      v = num2long(o)
+      raise RangeError, 'value cannot be negative' if v < 0
+      raise RangeError, 'value is too large' if v >= 0x1_0000_0000
+      v
+    end
+
+    # Ce que lèvent les conversions d'objets de l'API :
+    # TypeError « wrong argument type (expected Sketchup::X) », « reference to deleted X ».
+    def wrong_type(name)
+      raise TypeError, "wrong argument type (expected Sketchup::#{name})"
+    end
+
+    def deleted(name)
+      raise TypeError, "reference to deleted #{name}"
+    end
   end
 
   @http_requests = {}

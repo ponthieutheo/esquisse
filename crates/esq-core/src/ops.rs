@@ -769,6 +769,27 @@ impl Entities {
                 vx.pos = m.transform_point3(vx.pos);
             }
         }
+        self.settle_moved(verts);
+    }
+
+    /// Moves each vertex by its own transformation, all at the same time, as SketchUp's
+    /// `Entities#transform_by_vectors` does: a vertex listed twice keeps its
+    /// first one. The faces around are then re-oriented and the moved vertices welded, as by
+    /// [`Self::transform_vertices`].
+    pub fn transform_vertices_each(&mut self, moves: &[(VertexId, DMat4)]) {
+        let mut moved = HashSet::new();
+        for &(v, m) in moves {
+            if moved.insert(v)
+                && let Some(vx) = self.verts.get_mut(v)
+            {
+                vx.pos = m.transform_point3(vx.pos);
+            }
+        }
+        self.settle_moved(&moved);
+    }
+
+    /// After vertices moved: the normals of the faces around, then the welding.
+    fn settle_moved(&mut self, verts: &HashSet<VertexId>) {
         let faces: HashSet<FaceId> = verts
             .iter()
             .filter_map(|v| self.verts.get(*v))
@@ -1241,5 +1262,22 @@ mod weld_tests {
         assert!(a.verts.len() < n as usize, "rien n'a été soudé");
         // Each moved vertex looks at the few vertices of its neighbouring cells, not at all.
         assert!(looks < moved.len() as u64 * 4, "{looks} sommets regardés pour {} déplacés sur {n}", moved.len());
+    }
+
+    /// Each vertex its own move, all at once: the first one given wins, and a vertex that
+    /// lands on a fixed one is welded to it.
+    #[test]
+    fn vertices_move_each_by_their_own_transformation() {
+        let mut e = Entities::default();
+        let a = e.add_vertex_raw(DVec3::ZERO);
+        let b = e.add_vertex_raw(DVec3::X * 9.0);
+        let fixed = e.add_vertex_raw(DVec3::new(9.0, 5.0, 0.0));
+        e.add_edge_raw(a, b);
+        let up = DMat4::from_translation(DVec3::Y * 5.0);
+        let left = DMat4::from_translation(DVec3::X * -2.0);
+        e.transform_vertices_each(&[(a, left), (b, up), (a, up)]);
+        assert_eq!(e.verts[a].pos, DVec3::X * -2.0);
+        assert!(!e.verts.contains_key(b), "le sommet arrivé sur un autre n'a pas été soudé");
+        assert_eq!(e.verts[fixed].edges.len(), 1);
     }
 }

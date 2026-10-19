@@ -43,22 +43,12 @@ fn layer_json(m: &Model, i: usize, l: &Layer) -> J {
     })
 }
 
-fn folder_json(m: &Model, f: &LayerFolder) -> J {
-    // A folder is visible when it was not hidden and every tag inside it is.
-    let mut visible = f.visible;
-    if visible {
-        let mut stack = vec![f.uid];
-        while let Some(u) = stack.pop() {
-            if m.layers.iter().any(|l| l.folder == Some(u) && !l.visible) {
-                visible = false;
-            }
-            stack.extend(m.meta.folders.iter().filter(|x| x.parent == Some(u)).map(|x| x.uid));
-        }
-    }
+/// A folder's own switch (`LayerFolder#visible?`): its tags and sub-folders keep
+/// theirs (`Model::layer_shown` puts them together).
+fn folder_json(_m: &Model, f: &LayerFolder) -> J {
     json!({
-        "uid": f.uid, "name": f.name, "parent": f.parent, "visible": visible,
+        "uid": f.uid, "name": f.name, "parent": f.parent, "visible": f.visible,
         "visible_on_new_pages": f.visible_on_new_pages,
-        // The folder's own switch (what a scene saves), whatever its tags show.
         "flag": f.visible,
     })
 }
@@ -68,8 +58,11 @@ fn layer_idx(c: &Ctx, a: &J) -> Result<LayerIdx, String> {
     c.model.layer_index_of_uid(uid).ok_or_else(|| raise("TypeError", "reference to deleted Layer"))
 }
 
+/// `Layers#unique_name`: the default tag answers to "Layer0" (whatever its
+/// name in the interface's language), as `Layers#[]` finds it.
 fn unique(m: &Model, base: &str) -> String {
-    let taken: Vec<String> = m.layers.iter().map(|l| l.name.clone()).collect();
+    let taken: Vec<String> =
+        m.layers.iter().enumerate().map(|(i, l)| if i == 0 { "Layer0".to_string() } else { l.name.clone() }).collect();
     Model::unique_name(base, &taken)
 }
 
@@ -116,6 +109,13 @@ fn update(c: &mut Ctx, a: &J) -> R {
             return Err(raise("ArgumentError", "cannot hide layer that is a part of the active path"));
         }
         c.model.layers[i].visible = v;
+        if !v {
+            // a hidden active tag gives way to the default one.
+            if i != 0 && c.model.meta.active_layer == c.model.layers[i].uid {
+                c.model.meta.active_layer = 0;
+            }
+            deselect_hidden(c);
+        }
     }
     if let Some(col) = a.get("color") {
         c.model.layers[i].color = col
@@ -194,17 +194,21 @@ fn folder_of(c: &Ctx, a: &J) -> Result<usize, String> {
         .ok_or_else(|| raise("TypeError", "reference to deleted LayerFolder"))
 }
 
-fn folder_taken(m: &Model, parent: Option<u32>, except: Option<u32>) -> Vec<String> {
-    m.meta.folders.iter().filter(|f| f.parent == parent && Some(f.uid) != except).map(|f| f.name.clone()).collect()
+/// What a hidden tag or folder no longer shows leaves the selection.
+fn deselect_hidden(c: &mut Ctx) {
+    let ctx = super::misc::active_def(c);
+    let ents = c.model.entities(ctx);
+    let shown = c.model.layers_shown();
+    c.sel.retain(|e| ents.layer_of(*e).is_none_or(|l| shown.get(l).copied().unwrap_or(true)));
 }
 
+/// A new folder: SketchUp lets folders share a name.
 fn folder_add(c: &mut Ctx, a: &J) -> R {
-    let name = a["name"].as_str().unwrap_or("");
+    let name = a["name"].as_str().unwrap_or("").to_string();
     if name.is_empty() {
-        return Err(raise("ArgumentError", "Folder names cannot be empty."));
+        return Err(raise("ArgumentError", "Folder name cannot be empty"));
     }
     let parent = a.get("parent").and_then(J::as_u64).map(|u| u as u32);
-    let name = Model::unique_name(name, &folder_taken(c.model, parent, None));
     let uid = c.model.new_uid();
     c.model.meta.folders.push(LayerFolder { uid, name, parent, visible: true, visible_on_new_pages: true });
     let f = c.model.meta.folders.last().unwrap().clone();
@@ -218,9 +222,7 @@ fn folder_update(c: &mut Ctx, a: &J) -> R {
         if n.is_empty() {
             return Err(raise("ArgumentError", "Folder names cannot be empty."));
         }
-        let parent = c.model.meta.folders[k].parent;
-        let name = Model::unique_name(n, &folder_taken(c.model, parent, Some(uid)));
-        c.model.meta.folders[k].name = name;
+        c.model.meta.folders[k].name = n.to_string();
     }
     if let Some(p) = a.get("parent") {
         let p = p.as_u64().map(|u| u as u32);
@@ -253,15 +255,10 @@ fn folder_update(c: &mut Ctx, a: &J) -> R {
                 }
             }
         }
-        let mut stack = vec![uid];
-        while let Some(u) = stack.pop() {
-            for l in c.model.layers.iter_mut().filter(|l| l.folder == Some(u)) {
-                l.visible = v;
-            }
-            for f in c.model.meta.folders.iter_mut().filter(|f| f.uid == u) {
-                f.visible = v;
-            }
-            stack.extend(c.model.meta.folders.iter().filter(|x| x.parent == Some(u)).map(|x| x.uid));
+        // The folder's own switch only: what it holds keeps its own.
+        c.model.meta.folders[k].visible = v;
+        if !v {
+            deselect_hidden(c);
         }
     }
     if let Some(v) = a.get("visible_on_new_pages").and_then(J::as_bool) {
@@ -271,25 +268,11 @@ fn folder_update(c: &mut Ctx, a: &J) -> R {
     Ok(folder_json(c.model, &f))
 }
 
+/// the folder goes, its tags and sub-folders move up into its parent.
 fn folder_remove(c: &mut Ctx, a: &J) -> R {
     let k = folder_of(c, a)?;
     let uid = c.model.meta.folders[k].uid;
-    // Removing a folder removes the tags and folders inside it, like SketchUp does.
-    let mut inside = vec![uid];
-    let mut i = 0;
-    while i < inside.len() {
-        let u = inside[i];
-        inside.extend(c.model.meta.folders.iter().filter(|x| x.parent == Some(u)).map(|x| x.uid));
-        i += 1;
-    }
-    let doomed: Vec<u32> =
-        c.model.layers.iter().filter(|l| l.folder.is_some_and(|f| inside.contains(&f))).map(|l| l.uid).collect();
-    for u in doomed {
-        if let Some(i) = c.model.layer_index_of_uid(u) {
-            c.model.remove_layer(i, false);
-        }
-    }
-    c.model.meta.folders.retain(|f| !inside.contains(&f.uid));
+    c.model.remove_folder(uid);
     Ok(json!(true))
 }
 

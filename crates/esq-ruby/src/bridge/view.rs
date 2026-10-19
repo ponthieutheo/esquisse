@@ -74,21 +74,20 @@ fn pick_infer(c: &mut Ctx, a: &J) -> R {
         pos[1].as_f64().unwrap_or(0.0),
         pos[2].as_f64().unwrap_or(0.0),
     );
-    let mut face = J::Null;
-    let mut edge = J::Null;
-    let mut path: Vec<String> = Vec::new();
-    for (key, out) in [("face", &mut face), ("edge", &mut edge)] {
-        if let Some((pa, leaf)) = r.get(key).filter(|h| !h.is_null()).and_then(|h| hit_handles(c.model, h)) {
-            if path.is_empty() || key == "face" && out.is_null() {
-                path = pa;
-            }
-            *out = json!(leaf);
-        }
-    }
+    let hit = |key: &str| r.get(key).filter(|h| !h.is_null()).and_then(|h| hit_handles(c.model, h));
+    let (face_hit, edge_hit) = (hit("face"), hit("edge"));
+    let face = face_hit.as_ref().map_or(J::Null, |(_, l)| json!(l));
+    let edge = edge_hit.as_ref().map_or(J::Null, |(_, l)| json!(l));
+    // The point's pick path (SketchUp keeps one, InputPoint+0x48): the edge it
+    // lies on, else the face, after the instances that hold it.
+    let (path, leaf) = match edge_hit.or(face_hit) {
+        Some((pa, l)) => (pa, json!(l)),
+        None => (Vec::new(), J::Null),
+    };
     let vertex = if matches!(r["kind"].as_str(), Some("endpoint")) { edge.clone() } else { J::Null };
     Ok(json!({
         "pos": out_pt(p), "kind": r["kind"], "tip": r["tip"], "dof": r["dof"],
-        "path": path, "face": face, "edge": edge, "vertex": vertex,
+        "path": path, "leaf": leaf, "face": face, "edge": edge, "vertex": vertex,
     }))
 }
 
@@ -103,41 +102,59 @@ fn pick_list(c: &mut Ctx, op: &str, a: &J) -> R {
     Ok(J::Array(out))
 }
 
-/// Arêtes et faces dont la géométrie (monde) est dans la boîte, ou la touche si `crossing`.
+/// The entities of the active collection (`ctx`, placed by `xform`) whose geometry is in the
+/// box, or touches it when `crossing` (`PickHelper#boundingbox_pick`): edges,
+/// faces, and instances as a whole (all their vertices, nested ones too).
 fn pick_bbox(m: &Model, a: &J) -> R {
+    use esq_core::glam::{DMat4, DVec3};
     use slotmap::Key;
     let lo = pt(&a["min"])?;
     let hi = pt(&a["max"])?;
     let crossing = a.get("crossing").and_then(J::as_bool).unwrap_or(false);
-    let inside = |q: esq_core::glam::DVec3| q.cmpge(lo).all() && q.cmple(hi).all();
+    let ctx = match a.get("ctx").and_then(J::as_str) {
+        Some(c) => super::parse_ctx(c)?,
+        None => None,
+    };
+    let xf = match a.get("xform").filter(|x| !x.is_null()) {
+        Some(x) => super::mat_from(x)?,
+        None => DMat4::IDENTITY,
+    };
+    let path = a.get("path").cloned().unwrap_or_else(|| json!([]));
+    let inside = |q: DVec3| q.cmpge(lo).all() && q.cmple(hi).all();
+    let test = |pts: &[DVec3]| {
+        if crossing { pts.iter().any(|q| inside(*q)) } else { !pts.is_empty() && pts.iter().all(|q| inside(*q)) }
+    };
+    // Every vertex of a definition placed by `t`, nested instances included (bounded depth).
+    fn vertices(m: &Model, d: esq_core::model::DefId, t: DMat4, depth: usize, out: &mut Vec<DVec3>) {
+        let Some(def) = m.defs.get(d) else { return };
+        out.extend(def.entities.verts.values().map(|v| t.transform_point3(v.pos)));
+        if depth < 64 {
+            for i in def.entities.instances.values() {
+                vertices(m, i.def, t * i.xform, depth + 1, out);
+            }
+        }
+    }
+    let e = m.entities(ctx);
     let mut out = Vec::new();
-    esq_core::walk::visit(m, |p| {
-        let ctx = p.def;
-        let test = |pts: &[esq_core::glam::DVec3]| {
-            let w: Vec<_> = pts.iter().map(|q| p.xform.transform_point3(*q)).collect();
-            if crossing { w.iter().any(|q| inside(*q)) } else { w.iter().all(|q| inside(*q)) }
-        };
-        let path: Vec<String> = {
-            let mut ctx2 = None;
-            let mut v = Vec::new();
-            for &i in &p.path {
-                v.push(super::handle('i', ctx2, i.data().as_ffi()));
-                ctx2 = m.entities(ctx2).instances.get(i).map(|x| x.def);
-            }
-            v
-        };
-        for (id, _) in p.ents.edges.iter() {
-            let (s, e) = p.ents.edge_points(id);
-            if test(&[s, e]) {
-                out.push(json!({"path": path, "leaf": super::handle('e', ctx, id.data().as_ffi())}));
-            }
+    for (id, _) in e.edges.iter() {
+        let (s, q) = e.edge_points(id);
+        if test(&[xf.transform_point3(s), xf.transform_point3(q)]) {
+            out.push(json!({"path": path, "leaf": super::handle('e', ctx, id.data().as_ffi())}));
         }
-        for (id, f) in p.ents.faces.iter() {
-            if test(&p.ents.loop_points(&f.outer)) {
-                out.push(json!({"path": path, "leaf": super::handle('f', ctx, id.data().as_ffi())}));
-            }
+    }
+    for (id, f) in e.faces.iter() {
+        let pts: Vec<DVec3> = e.loop_points(&f.outer).into_iter().map(|q| xf.transform_point3(q)).collect();
+        if test(&pts) {
+            out.push(json!({"path": path, "leaf": super::handle('f', ctx, id.data().as_ffi())}));
         }
-    });
+    }
+    for (id, i) in e.instances.iter() {
+        let mut pts = Vec::new();
+        vertices(m, i.def, xf * i.xform, 0, &mut pts);
+        if test(&pts) {
+            out.push(json!({"path": path, "leaf": super::handle('i', ctx, id.data().as_ffi())}));
+        }
+    }
     Ok(J::Array(out))
 }
 

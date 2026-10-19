@@ -75,18 +75,12 @@ impl EsquisseApp {
         uid
     }
 
-    /// Shows or hides a tag folder and everything in it.
+    /// Shows or hides a tag folder, and with it everything inside (`Model::layer_shown`): its
+    /// tags and sub-folders keep their own switch, as in SketchUp.
     pub fn set_folder_visible(&mut self, uid: u32, visible: bool) {
         self.doc.commit("Visibilité du dossier d'étiquettes", |m, _| {
-            let mut stack = vec![uid];
-            while let Some(u) = stack.pop() {
-                for l in m.layers.iter_mut().filter(|l| l.folder == Some(u)) {
-                    l.visible = visible;
-                }
-                for f in m.meta.folders.iter_mut().filter(|f| f.uid == u) {
-                    f.visible = visible;
-                }
-                stack.extend(m.meta.folders.iter().filter(|f| f.parent == Some(u)).map(|f| f.uid));
+            for f in m.meta.folders.iter_mut().filter(|f| f.uid == uid) {
+                f.visible = visible;
             }
         });
     }
@@ -350,11 +344,12 @@ mod tests {
         assert_eq!(app.doc.model.root.edges[edge].layer, a);
         app.doc.commit("t", |m, _| crate::dialogs::tag_dialog::delete_tag(m, a, None));
         assert!(app.doc.model.root.edges.is_empty());
-        // Folders: hiding one hides its tags; purge removes unused tags and empty folders.
+        // Folders: hiding one hides its tags (which keep their own switch); purge removes
+        // unused tags and empty folders.
         let f = app.add_tag_folder();
         let t = app.add_tag(Some(f));
         app.set_folder_visible(f, false);
-        assert!(!app.doc.model.layers[t].visible);
+        assert!(!app.doc.model.layer_shown(t) && app.doc.model.layers[t].visible);
         let empty = app.add_tag_folder();
         assert!(app.purge_tags() >= 3, "tags and folders");
         assert!(!app.doc.model.meta.folders.iter().any(|x| x.uid == empty || x.uid == f));

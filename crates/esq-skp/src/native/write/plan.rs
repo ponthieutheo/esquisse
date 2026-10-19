@@ -2076,6 +2076,8 @@ impl P<'_> {
                 let Some(d) = self.image_definition(inst.def)? else { continue };
                 // An image's drawing element: it receives shadows and casts none (SDK default).
                 el.flags &= !flags::CASTS;
+                // It glues and is glued to like an instance (relationships below).
+                inst_ids.insert(iid, el.id);
                 out.images.push(Image {
                     inst: Inst {
                         el,
@@ -2658,7 +2660,7 @@ impl P<'_> {
             ents,
             thumb_camera: match def.ext.thumbnail_camera {
                 Some([e, t, u]) if [e, t, u].iter().all(|v| v.is_finite()) => {
-                    Some([(e / IN).to_array(), (t / IN).to_array(), u.to_array()])
+                    Some([e.to_array(), t.to_array(), u.to_array()])
                 }
                 _ => None,
             },

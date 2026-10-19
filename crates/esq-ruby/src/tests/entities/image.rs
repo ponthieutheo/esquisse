@@ -158,6 +158,10 @@ fn image_gluing() {
     assert_eq!(r, "[nil, nil]");
     assert_eq!(
         raised(&with_image("i.glued_to = 5")).unwrap(),
+        "TypeError: wrong argument type (expected Sketchup::Entity)"
+    );
+    assert_eq!(
+        raised(&with_image("i.glued_to = ents.add_line([0,0,0], [1,0,0])")).unwrap(),
         "ArgumentError: wrong type - expected Sketchup::Face, Sketchup::Group, SketchUp::Image or Sketchup::ComponentInstance"
     );
 }

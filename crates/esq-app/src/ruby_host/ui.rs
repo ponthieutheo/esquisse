@@ -782,6 +782,9 @@ mod tests {
 
     #[test]
     fn timers_fire_once_or_repeat() {
+        // The timers and the event queue are global: the tests that run Ruby fill and drain them
+        // under the host lock, so this one takes it too.
+        let _g = crate::tests::ruby::HOST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         TIMERS.lock().unwrap().clear();
         EVENTS.lock().unwrap().clear();
         let now = Instant::now();

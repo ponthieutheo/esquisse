@@ -34,6 +34,8 @@ impl Host for AppHost<'_> {
         match op.split('.').next().unwrap_or("") {
             "model" => model::call(self.app, self.st, model, sel, op, args),
             "entities" => entities::call(self.app, model, sel, op, args),
+            // Needs the edit path: the picture is drawn at once.
+            "view" if op == "view.write_image" => view::write_image(self.app, &self.st.ctx, model, sel, op, args),
             "view" => view::call(self.app, model, sel, op, args),
             "ui" => ui::call(self.app, model, sel, op, args),
             // Needs the script state: the tool is set once the script is over.

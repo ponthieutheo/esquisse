@@ -376,7 +376,10 @@ fn arc_info(e: &Entities, shape: &CurveShape, key: &str) -> Option<ArcInfo> {
         _ => (u.normalize(), 0.0),
     };
     let end = if shape.closed { start + std::f64::consts::TAU } else { num("end").unwrap_or(start + sweep) };
-    Some(ArcInfo { center, normal, radius, xaxis, start, end, circular: shape.closed })
+    // both angles at 0 (an arc of 0 to 2π that Entities#add_arc closed), or a
+    // whole turn between them, within 1e-6.
+    let full = (start.abs() < 1e-6 && end.abs() < 1e-6) || (std::f64::consts::TAU - (end - start).abs()).abs() < 1e-6;
+    Some(ArcInfo { center, normal, radius, xaxis, start, end, circular: shape.closed || full })
 }
 
 fn curve_json(m: &Model, ctx: Option<DefId>, id: u64) -> R {
@@ -869,17 +872,6 @@ fn mesh_of(m: &Model, e: &Entities, f: FaceId, flags: u64) -> J {
     json!({"pts": pts3.into_iter().map(out_pt).collect::<Vec<_>>(), "tris": tris, "loops": sizes, "uvq": extra})
 }
 
-fn translation(v: DVec3) -> DMat4 {
-    DMat4::from_translation(v)
-}
-
-/// Moves one entity of a collection.
-fn transform_one(en: &mut Entities, h: &H, m: &DMat4) {
-    if let Some(er) = eref_of(h) {
-        en.transform_selection(&[er], m);
-    }
-}
-
 /// `Entities#add_snap` / `Snap#set`: the up made perpendicular to the direction, as
 /// SketchUp does; `None` when they are parallel (0.001 per component).
 fn snap_frame(dir: DVec3, up: DVec3) -> Option<(DVec3, DVec3)> {
@@ -951,11 +943,12 @@ fn add_mesh(c: &mut Ctx, a: &J) -> R {
             if let Some(ed) = en.find_edge(x, y) {
                 touched.push(ed);
                 if ix < 0 {
+                    // HIDE_BASED_ON_INDEX wins over SOFTEN_BASED_ON_INDEX, SMOOTH_SOFT_EDGES
+                    // still applies (TestUp *_hide_based_on_index_override_soften_based_on_index).
                     let edge = &mut en.edges[ed];
                     if flags & 1 != 0 {
                         edge.hidden = true;
-                    }
-                    if flags & 2 != 0 {
+                    } else if flags & 2 != 0 {
                         edge.soft = true;
                     }
                     if flags & 8 != 0 {
@@ -1020,6 +1013,9 @@ pub fn dispatch(c: &mut Ctx, op: &str, a: &J) -> Option<R> {
             | "axes.set"
             | "ents.info"
             | "ents.vertex_at"
+            | "builder.face"
+            | "builder.edges"
+            | "builder.find"
             | "image.add"
             | "image.get"
             | "image.size"
@@ -1093,7 +1089,7 @@ fn run(c: &mut Ctx, op: &str, a: &J) -> R {
                 need(c.model, h)?;
                 items.push(h);
             }
-            // One transformation per entity: the same for all, or a translation each.
+            // One transformation per entity: the same for all, or each its own.
             let xforms: Vec<DMat4> = if op == "ent.transform" {
                 let m = mat_from(&a["xform"])?;
                 if m.determinant().abs() < 1e-12 {
@@ -1101,8 +1097,8 @@ fn run(c: &mut Ctx, op: &str, a: &J) -> R {
                 }
                 vec![m; items.len()]
             } else {
-                let vecs = a["vectors"].as_array().ok_or("vectors attendu")?;
-                vecs.iter().take(items.len()).map(|v| len_vec(v).map(translation)).collect::<Result<_, _>>()?
+                let list = a["xforms"].as_array().ok_or("xforms attendu")?;
+                list.iter().take(items.len()).map(mat_from).collect::<Result<_, _>>()?
             };
             let en = ents_mut(c.model, ctx).ok_or("contexte supprimé")?;
             if op == "ent.transform" {
@@ -1111,9 +1107,22 @@ fn run(c: &mut Ctx, op: &str, a: &J) -> R {
                     en.transform_selection(&geo, m);
                 }
             } else {
+                // `transform_by_vectors`: the vertices, given or
+                // those of the edges and faces, move each by its own transformation, all at once.
+                let mut moves: Vec<(VertexId, DMat4)> = Vec::new();
                 for (h, m) in items.iter().zip(&xforms) {
-                    transform_one(en, h, m);
+                    match (h.kind, eref_of(h)) {
+                        ('v', _) => moves.push((VertexId::from(KeyData::from_ffi(h.id)), *m)),
+                        (_, Some(er @ (EntityRef::Edge(_) | EntityRef::Face(_)))) => {
+                            let mut vs: Vec<VertexId> = en.vertices_of(&[er]).into_iter().collect();
+                            vs.sort();
+                            moves.extend(vs.into_iter().map(|v| (v, *m)));
+                        }
+                        (_, Some(er)) => en.transform_selection(&[er], m),
+                        (_, None) => {}
+                    }
                 }
+                en.transform_vertices_each(&moves);
             }
             Ok(J::Null)
         }
@@ -1145,14 +1154,18 @@ fn run(c: &mut Ctx, op: &str, a: &J) -> R {
         "ent.weld" => {
             let ctx = ctx_of(a)?;
             let hl = hs(a, "hs")?;
+            // Each edge must live and belong to this collection.
+            for h in hl.iter().filter(|h| h.kind == 'e') {
+                need(c.model, h)?;
+                if h.ctx != ctx {
+                    return Err(arg_err("Edge has different parent"));
+                }
+            }
             let en = ents_mut(c.model, ctx).ok_or("contexte supprimé")?;
             let mut edges: Vec<EdgeId> = Vec::new();
             for h in &hl {
                 if h.kind == 'e' {
                     let eid = EdgeId::from(KeyData::from_ffi(h.id));
-                    if !en.edges.contains_key(eid) {
-                        return Err(deleted('e'));
-                    }
                     if !edges.contains(&eid) {
                         edges.push(eid);
                     }
@@ -1177,6 +1190,8 @@ fn run(c: &mut Ctx, op: &str, a: &J) -> R {
                         }
                     }
                 }
+                // A welded run is a plain curve, never an arc (CCurve).
+                en.set_prop(&prop_key('c', id as u64), "kind", AttrValue::Text("curve".into()));
                 curves.push(curve_h(ctx, id));
             }
             Ok(json!(curves))
@@ -1272,8 +1287,33 @@ fn run(c: &mut Ctx, op: &str, a: &J) -> R {
             need(c.model, &h)?;
             let en = ents_mut(c.model, h.ctx).unwrap();
             let id = EdgeId::from(KeyData::from_ffi(h.id));
+            let old: HashSet<FaceId> = en.faces.keys().collect();
             let before = en.faces.len();
             en.heal_faces_around(&[id]);
+            // As SketchUp orients what find_faces makes (TestUp test_find_faces_face_orientation_*):
+            // the first new face runs along the edge, from its start to its end; on the ground
+            // plane a face looks down.
+            let [s, e] = en.edges[id].v;
+            let mut new: Vec<FaceId> = en.faces.keys().filter(|f| !old.contains(f)).collect();
+            new.sort();
+            let mut along = false;
+            for &f in &new {
+                let on_ground = en.faces[f].all_vertices().all(|v| en.verts[v].pos.z.abs() < TOL);
+                let outer = &en.faces[f].outer;
+                let n = outer.len();
+                let backward = (0..n).any(|i| outer[i] == e && outer[(i + 1) % n] == s);
+                let forward = (0..n).any(|i| outer[i] == s && outer[(i + 1) % n] == e);
+                let flip = if on_ground {
+                    en.faces[f].normal.z > 0.0
+                } else {
+                    let first = !along && (forward || backward);
+                    along |= first;
+                    first && backward
+                };
+                if flip {
+                    en.reverse_face(f);
+                }
+            }
             Ok(json!(en.faces.len().saturating_sub(before)))
         }
         "edge.explode_curve" => {
@@ -1569,6 +1609,49 @@ fn run(c: &mut Ctx, op: &str, a: &J) -> R {
             Ok(
                 json!({"count": en.edges.len() + en.faces.len() + en.instances.len() + en.guides.len() + en.annots.len() + en.sections.len()}),
             )
+        }
+        // `EntitiesBuilder`: the
+        // vertices are those already at the points (the builder indexes the collection's own)
+        // or new ones; a face keeps the orientation of its points and neither
+        // merges with nor cuts what is there; an edge whose ends meet is skipped (null).
+        "builder.face" => {
+            let ctx = ctx_of(a)?;
+            let outer = pts(&a["pts"])?;
+            let holes: Vec<Vec<DVec3>> = match a.get("holes").and_then(J::as_array) {
+                Some(l) => l.iter().map(pts).collect::<Result<_, _>>()?,
+                None => Vec::new(),
+            };
+            if outer.len() < 3 || holes.iter().any(|h| h.len() < 3) {
+                return Err(arg_err("Not enough points in loop require at least 3"));
+            }
+            let n = esq_core::math::newell_normal(&outer).normalize_or_zero();
+            if n == DVec3::ZERO {
+                return Err(arg_err("Points are not planar"));
+            }
+            let off = n.dot(outer[0]);
+            if outer.iter().chain(holes.iter().flatten()).any(|p| (n.dot(*p) - off).abs() > TOL) {
+                return Err(arg_err("Points are not planar"));
+            }
+            let en = ents_mut(c.model, ctx).ok_or("contexte supprimé")?;
+            let o: Vec<VertexId> = outer.iter().map(|&p| en.vertex_at(p)).collect();
+            let hs: Vec<Vec<VertexId>> = holes.iter().map(|h| h.iter().map(|&p| en.vertex_at(p)).collect()).collect();
+            let f = en.add_face_raw(o, hs).ok_or_else(|| arg_err("Points are not planar"))?;
+            Ok(json!(fh(ctx, f)))
+        }
+        "builder.edges" => {
+            let ctx = ctx_of(a)?;
+            let p = pts(&a["pts"])?;
+            let en = ents_mut(c.model, ctx).ok_or("contexte supprimé")?;
+            let vs: Vec<VertexId> = p.iter().map(|&q| en.vertex_at(q)).collect();
+            let out: Vec<J> =
+                vs.windows(2).map(|w| en.add_edge_raw(w[0], w[1]).map_or(J::Null, |e| json!(eh(ctx, e)))).collect();
+            Ok(J::Array(out))
+        }
+        "builder.find" => {
+            let ctx = ctx_of(a)?;
+            let p = pt(&a["p"])?;
+            let en = ents(c.model, ctx).ok_or("contexte supprimé")?;
+            Ok(en.find_vertex(p).map_or(J::Null, |v| json!(vh(ctx, v))))
         }
         "ents.vertex_at" => {
             let ctx = ctx_of(a)?;

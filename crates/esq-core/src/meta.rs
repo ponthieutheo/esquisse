@@ -142,6 +142,85 @@ pub struct MaterialExt {
     /// listed in Window › Materials. Exploding the image makes it an ordinary material.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub owner_image: bool,
+    /// The opacity as a script gave it (`Material#alpha=`: SketchUp keeps a double), given
+    /// back while `opacity` is still its rounding.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alpha: Option<f64>,
+    /// The alpha byte of the colour (SketchUp keeps the colour as RGBA: a material a script
+    /// adds is (0, 0, 0, 0), a colour given takes 255); none: 255.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub color_alpha: Option<u8>,
+}
+
+/// Hue (degrees, −1 for a grey), lightness and saturation (0–1) of a colour, computed as
+/// SketchUp computes them (components divided by 255 in single precision,
+/// comparisons with a tolerance of 0.001).
+pub fn hls(c: [u8; 3]) -> (f64, f64, f64) {
+    const EPS: f64 = 0.001;
+    let [r, g, b] = c.map(|x| (x as f32 / 255.0f32) as f64);
+    let mut max = r;
+    if EPS <= g - max {
+        max = g;
+    }
+    if EPS <= b - max {
+        max = b;
+    }
+    let mut min = r;
+    if g - r <= -EPS {
+        min = g;
+    }
+    if b - min <= -EPS {
+        min = b;
+    }
+    let l = (min + max) * 0.5;
+    if (min - max).abs() < EPS {
+        return (-1.0, l, 0.0);
+    }
+    let l2 = l - 0.5;
+    let s = if l2 <= -EPS || l2.abs() < EPS { (max - min) / (min + max) } else { (max - min) / ((2.0 - max) - min) };
+    let d = max - min;
+    let (rc, gc, bc) = ((max - r) / d, (max - g) / d, (max - b) / d);
+    let mut h = 0.0;
+    if (r - max).abs() >= EPS {
+        if (g - max).abs() >= EPS {
+            if (b - max).abs() < EPS {
+                h = (gc + 4.0) - rc;
+            }
+        } else {
+            h = (rc + 2.0) - bc;
+        }
+    } else {
+        h = bc - gc;
+    }
+    h *= 60.0;
+    if h - 0.0 <= -EPS {
+        h += 360.0;
+    }
+    (h, l, s)
+}
+
+/// The colorization offsets of a texture whose average colour is `avg` to the material's
+/// colour (`SUMaterialGetColorizeDeltas`): hue, saturation and lightness
+/// ([`MaterialExt::colorize_deltas`]), the hue itself when the material tints (`shift`
+/// false).
+pub fn colorize_deltas(avg: [u8; 3], color: [u8; 3], shift: bool) -> [f64; 3] {
+    let grey = |c: [u8; 3]| c[0] == c[1] && c[0] == c[2];
+    let (h0, l0, s0) = if avg == [0, 0, 0] { (0.0, 0.0, 0.0) } else { hls(avg) };
+    let (mut h, mut l, mut s) = hls(color);
+    if grey(color) {
+        h = 0.0;
+        s = if grey(avg) { 0.0 } else { -1.0 };
+        l -= l0;
+    } else {
+        l -= l0;
+        if !grey(avg) {
+            s -= s0;
+            if shift {
+                h -= h0;
+            }
+        }
+    }
+    [h, s, l]
 }
 
 impl MaterialExt {
@@ -231,17 +310,25 @@ pub fn default_options() -> BTreeMap<String, BTreeMap<String, Value>> {
     );
     put("PageOptions", &[("ShowTransition", json!(true)), ("TransitionTime", json!(2.0))]);
     put("SlideshowOptions", &[("LoopSlideshow", json!(false)), ("SlideTime", json!(1.0))]);
+    // SketchUp 2026's CPrintOptions (keys, values of a new one).
     put(
         "PrintOptions",
         &[
-            ("ComputeScale", json!(false)),
+            ("PrintWidth", json!(8.5)),
+            ("PrintHeight", json!(11.0)),
+            ("ComputeSizeFromScale", json!(false)),
+            ("SizeInPrint", json!(1.0)),
+            ("SizeInModel", json!(1.0)),
+            ("VectorMode", json!(false)),
             ("FitToPage", json!(true)),
             ("NumberOfPages", json!(1)),
-            ("PrintHeight", json!(0.0)),
-            ("PrintWidth", json!(0.0)),
+            ("LineWeight", json!(0.5)),
+            ("PixelsPerInch", json!(150.0)),
+            ("SectionSlice", json!(false)),
+            ("ModelExtents", json!(true)),
             ("PrintQuality", json!(0)),
-            ("ScaleAspect", json!(1.0)),
-            ("UseScaleFactor", json!(false)),
+            ("ScaleAdjustment", json!(1.0)),
+            ("QualityAdjustment", json!(1.0)),
         ],
     );
     put("NamedOptions", &[]);
@@ -500,6 +587,32 @@ impl Model {
         false
     }
 
+    /// Whether what is on tag `l` shows: the tag is visible and so is every folder holding it,
+    /// at any depth (SketchUp's tag test). Tags and folders keep their own
+    /// switch: hiding a folder changes neither its tags' nor its sub-folders'. A tag that does
+    /// not exist shows.
+    pub fn layer_shown(&self, l: LayerIdx) -> bool {
+        let Some(layer) = self.layers.get(l) else { return true };
+        if !layer.visible {
+            return false;
+        }
+        let mut cur = layer.folder;
+        // A damaged file can make folders hold each other: at most one visit per folder.
+        for _ in 0..=self.meta.folders.len() {
+            let Some(f) = cur.and_then(|u| self.meta.folders.iter().find(|f| f.uid == u)) else { break };
+            if !f.visible {
+                return false;
+            }
+            cur = f.parent;
+        }
+        true
+    }
+
+    /// `layer_shown` of every tag, by index (for the loops that ask it of each entity).
+    pub fn layers_shown(&self) -> Vec<bool> {
+        (0..self.layers.len()).map(|l| self.layer_shown(l)).collect()
+    }
+
     /// Removes a folder with everything in it: its tags and sub-folders are kept in the
     /// model but moved to the root, as SketchUp does when a folder is removed.
     pub fn remove_folder(&mut self, uid: u32) {
@@ -528,6 +641,43 @@ mod tests {
         let uid_b = m.layers[b].uid;
         m.remove_layer(a, false);
         assert_eq!(m.layer_index_of_uid(uid_b), Some(1));
+    }
+
+    /// A tag shows when it and every folder above it are visible; hiding a folder changes no
+    /// other switch (TestUp `TC_Sketchup_LayerFolder#test_visible_Query_nested`).
+    #[test]
+    fn tags_show_through_their_folders() {
+        let mut m = Model::new();
+        m.ensure_layer_uids();
+        let t = m.add_layer("T");
+        let (outer, inner) = (m.new_uid(), m.new_uid());
+        m.meta.folders.push(LayerFolder {
+            uid: outer,
+            name: "A".into(),
+            parent: None,
+            visible: true,
+            visible_on_new_pages: true,
+        });
+        m.meta.folders.push(LayerFolder {
+            uid: inner,
+            name: "B".into(),
+            parent: Some(outer),
+            visible: true,
+            visible_on_new_pages: true,
+        });
+        m.layers[t].folder = Some(inner);
+        assert!(m.layer_shown(t) && m.layer_shown(0) && m.layer_shown(99));
+        m.meta.folders[0].visible = false;
+        assert!(!m.layer_shown(t) && m.layer_shown(0));
+        assert!(m.layers[t].visible && m.meta.folders[1].visible);
+        assert_eq!(m.layers_shown(), vec![true, false]);
+        m.meta.folders[0].visible = true;
+        m.layers[t].visible = false;
+        assert!(!m.layer_shown(t));
+        // Folders that hold each other (a damaged file): the walk ends.
+        m.layers[t].visible = true;
+        m.meta.folders[0].parent = Some(inner);
+        assert!(m.layer_shown(t));
     }
 
     #[test]

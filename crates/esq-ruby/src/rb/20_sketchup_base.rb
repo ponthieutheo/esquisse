@@ -27,6 +27,17 @@ module Esq
     end
 
     def observers; @observers ||= Hash.new { |h, k| h[k] = [] }; end
+
+    # entityID et persistent_id de ce qui n'est pas de la géométrie : SketchUp les tire tous
+    # d'un même compteur, ils ne se croisent jamais. Les objets d'Esquisse gardent chacun leur
+    # numéro (étiquettes et dossiers : le compteur du modèle ; matières, scènes, styles,
+    # environnements : le leur) ; le genre, dans les bits de poids fort, les sépare, au-delà de
+    # ceux des entités (`Entity#unique_id`).
+    PID_KINDS = { tag: 1, material: 2, page: 3, style: 4, environment: 5 }.freeze
+    def object_pid(kind, n)
+      n = n.to_i
+      (PID_KINDS.fetch(kind) << 56) + (n < 0 ? (1 << 55) - n : n)
+    end
     # Session settings of the Sketchup module (the saved ones go through read/write_default).
     def prefs; @prefs ||= { fix_shadow_strings: false }; end
     def importers; @importers ||= []; end
@@ -137,6 +148,7 @@ module Sketchup
     def remove_observer(obs); !Esq.observers[:app].delete(obs).nil?; end
     def file_new
       Esq.call('host.model.new')
+      Esq::Events.entities_replaced if defined?(Esq::Events)
       Esq.emit(Esq.observers[:app], :onNewModel, active_model)
       true
     end
@@ -149,8 +161,12 @@ module Sketchup
       with_status = kw[:with_status] ? true : false
       warn 'Deprecated overload, use with_status: true overload instead', uplevel: 1 unless with_status
       path = File.expand_path(Esq.str_arg(args[0])) # StringValue
+      # The old overload does not open a file of a newer SketchUp that opens only after a
+      # warning (a soft block): it says false.
+      return false if !with_status && File.file?(path) && Esq.call('defs.newer.info', 'path' => path) == 'soft'
       status = File.file?(path) ? Esq.host('model.open', { 'path' => path }, { 'status' => -1 })['status'] : -1
       ok = status == Model::LOAD_STATUS_SUCCESS || status == Model::LOAD_STATUS_SUCCESS_MORE_RECENT
+      Esq::Events.entities_replaced if ok && defined?(Esq::Events)
       Esq.emit(Esq.observers[:app], ok ? :onOpenModel : :onFileOpenFailed, ok ? active_model : path)
       return ok unless with_status
       ok ? status : false
@@ -478,7 +494,9 @@ module Sketchup
       'WhiteSmoke' => [245, 245, 245], 'Yellow' => [255, 255, 0], 'YellowGreen' => [154, 205, 50]
     }.freeze
     LOOKUP = NAME_TABLE.each_with_object({}) { |(k, v), h| h[k.downcase] = v }.freeze
-    NAMES = NAME_TABLE.keys.freeze
+    # Les 140 noms que donne SketchUp : les variantes « Grey » se lisent sans être listées,
+    # sauf LightGrey, que SketchUp liste à la place de LightGray.
+    NAMES = (NAME_TABLE.keys - %w[DarkGrey DarkSlateGrey DimGrey Grey LightGray LightSlateGrey SlateGrey]).freeze
 
     def self.names; NAMES.dup; end
 
@@ -550,18 +568,25 @@ module Sketchup
     alias eql? ==
     def hash; to_a.hash; end
 
-    # Mélange pondéré (SUColorBlend) : `weight` est le poids de self, 1 - weight celui de `other`.
+    # Mélange pondéré (SUColorBlend) : `weight` est le poids de self, 1 - weight
+    # celui de `other`, lu par rb_num2dbl (TypeError) ; les composantes sur 1 en simple
+    # précision, mêlées en double, rendues ×255 tronquées, bornées.
     def blend(other, weight)
       raise ArgumentError, 'wrong type - expected Sketchup::Color' unless other.is_a?(Sketchup::Color)
-      w = weight.to_f
-      mix = ->(a, b) { (a * w + b * (1 - w)).round.clamp(0, 255) }
+      w = Esq::Conv.num2dbl(weight)
+      unit = ->(c) { [c / 255.0].pack('f').unpack1('f') }
+      mix = lambda do |a, b|
+        v = unit.(b) * (1.0 - w) + unit.(a) * w
+        v <= 0.0 ? 0 : (v >= 1.0 ? 255 : (v * 255.0).to_i)
+      end
       Color.new(mix.(@red, other.red), mix.(@green, other.green), mix.(@blue, other.blue), mix.(@alpha, other.alpha))
     end
 
     private
 
+    # Un entier par rb_num2long : une couleur, un texte ou un tableau lèvent TypeError.
     def check_byte(v)
-      i = Integer(v)
+      i = Esq::Conv.num2long(v)
       raise ArgumentError, 'Value must be between 0..255' if i < 0 || i > 255
       i
     end

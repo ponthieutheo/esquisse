@@ -239,7 +239,7 @@ impl Exp<'_> {
         let hidden = self.o.hidden;
         let mut by_mat: BTreeMap<Option<MaterialId>, Vec<&Face>> = BTreeMap::new();
         for f in ents.faces.values() {
-            if hidden || (!f.hidden && model.layers.get(f.layer).is_none_or(|l| l.visible)) {
+            if hidden || (!f.hidden && model.layer_shown(f.layer)) {
                 by_mat.entry(f.front.or(inherited)).or_default().push(f);
             }
         }
@@ -399,7 +399,7 @@ impl Exp<'_> {
         }
         for inst in ents.instances.values() {
             let Some(d) = model.defs.get(inst.def) else { continue };
-            let shown = self.o.hidden || (!inst.hidden && model.layers.get(inst.layer).is_none_or(|l| l.visible));
+            let shown = self.o.hidden || (!inst.hidden && model.layer_shown(inst.layer));
             if !shown || d.ext.image.is_some() {
                 continue;
             }

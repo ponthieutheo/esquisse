@@ -16,7 +16,7 @@ Navigation Ltd., licence MIT, sans modification.*
   (`%APPDATA%\Esquisse\Plugins`) ou s'installent depuis un `.rbz`
   (**Extensions › Gestionnaire d'extensions**), puis ajoutent leurs menus, barres d'outils et
   outils comme dans SketchUp.
-- La suite officielle de tests de l'API Ruby de SketchUp (TestUp) réussit 2 563 tests sur
+- La suite officielle de tests de l'API Ruby de SketchUp (TestUp) réussit 2 895 tests sur
   3 020 ; des extensions d'exemple de SketchUp publiées sur GitHub (formes 3D, Weld, Draw Mesh)
   tournent sans modification.
 - Les extensions chiffrées (`.rbe`, `.rbs`), fréquentes dans le commerce, ne se chargent pas.

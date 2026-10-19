@@ -117,7 +117,7 @@ fn erase_and_clear() {
     );
     assert_eq!(
         raised(&sq("e = ents.grep(Sketchup::Edge).first; e.erase!; ents.erase_entities(e)")).unwrap(),
-        "TypeError: reference to deleted Edge"
+        "TypeError: reference to deleted Entity"
     );
 }
 
@@ -200,7 +200,7 @@ fn build_yields_a_builder_valid_only_inside_the_block() {
     else {
         return;
     };
-    assert_eq!(r, "[nil, [true, true, \"Sketchup::Face\", \"Sketchup::Edge\", 2, \"Sketchup::Vertex\"], false, 1, 7]");
+    assert_eq!(r, "[nil, [true, true, \"Sketchup::Face\", \"Sketchup::Edge\", 2, \"NilClass\"], false, 1, 7]");
     assert_eq!(
         raised("ents = Sketchup.active_model.entities; b = nil; ents.build { |x| b = x }; b.add_face([0,0,0],[1,0,0],[1,1,0])").unwrap(),
         "RuntimeError: Invalid Sketchup::EntitiesBuilder object."
@@ -251,7 +251,7 @@ fn faces_from_a_mesh_with_flags_and_materials() {
     else {
         return;
     };
-    assert_eq!(r, "[2, true, true, false, [\"Rouge\"], [\"Bleu\"]]");
+    assert_eq!(r, "[2, true, false, false, [\"Rouge\"], [\"Bleu\"]]");
     assert_eq!(
         raised("Sketchup.active_model.entities.add_faces_from_mesh").unwrap(),
         "ArgumentError: Too few arguments - 1 to 4 required"

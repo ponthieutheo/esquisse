@@ -162,7 +162,8 @@ pub struct Behavior {
 pub struct DefExt {
     #[serde(default)]
     pub behavior: Behavior,
-    /// Camera of the thumbnail: eye, target, up.
+    /// Camera of the thumbnail: eye, target, up, in inches as SketchUp keeps them (what
+    /// `ComponentDefinition#thumbnail_camera=` sets comes back exactly).
     #[serde(default)]
     pub thumbnail_camera: Option<[DVec3; 3]>,
     /// When the definition was loaded (seconds since 1970; 0 = created in this model).
@@ -179,6 +180,11 @@ pub struct DefExt {
     /// it saves the file again).
     #[serde(default, skip_serializing_if = "String::is_empty")]
     pub guid: String,
+    /// What the definition was loaded from (`DefinitionList#load`): the file's and the
+    /// geometry's fingerprints then, so that loading the same unchanged file again gives it
+    /// back. Not saved.
+    #[serde(skip)]
+    pub load_sig: Option<(u64, u64)>,
 }
 
 impl DefExt {
@@ -258,6 +264,22 @@ impl AttrValue {
 /// Sets a value, creating the dictionary when needed.
 pub fn set_attr(attrs: &mut Attributes, dict: &str, key: &str, value: AttrValue) {
     attrs.entry(dict.to_string()).or_default().insert(key.to_string(), value);
+}
+
+/// The advanced attributes of a component (SketchUp 2018 and later): its definition's
+/// `SU_DefinitionSet`, an instance's `SU_InstanceSet`, each key an empty text.
+pub const DEFINITION_SET: (&str, [&str; 3]) = ("SU_DefinitionSet", ["Price", "Size", "Url"]);
+pub const INSTANCE_SET: (&str, [&str; 2]) = ("SU_InstanceSet", ["Owner", "Status"]);
+
+/// Gives a dictionary of advanced attributes to `attrs` when it does not have it yet
+/// (SketchUp does it each time it makes an instance of a component, to the
+/// instance and to its definition, and when it loads one; never for a group
+/// or an image).
+pub fn give_advanced(attrs: &mut Attributes, set: (&str, &[&str])) {
+    if !attrs.contains_key(set.0) {
+        attrs
+            .insert(set.0.to_string(), set.1.iter().map(|k| (k.to_string(), AttrValue::Text(String::new()))).collect());
+    }
 }
 
 /// Removes a key; an emptied dictionary goes away too.

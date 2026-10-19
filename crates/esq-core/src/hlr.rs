@@ -220,7 +220,8 @@ fn gather(model: &Model, view: &HlrView, s: &HlrSettings) -> (Vec<Seg>, Vec<Poly
     let mut segs = Vec::new();
     let mut polys = Vec::new();
     let mut occluders: Vec<[DVec3; 3]> = Vec::new();
-    let layer_visible = |l: usize| model.layers.get(l).is_none_or(|x| x.visible);
+    let shown_tags = model.layers_shown();
+    let layer_visible = |l: usize| shown_tags.get(l).copied().unwrap_or(true);
     visit(model, |p| {
         let cuts: &[SectionPlane] = if s.section_cuts { &p.cuts } else { &[] };
         let normal_m = p.xform.inverse().transpose();

@@ -62,7 +62,7 @@ fn color_follows_sketchup() {
     assert_eq!(
         r,
         "[[0, 0, 0, 255], true, [127, 255, 255, 0], [255, 0, 0, 255], 255, \"Color(255, 0, 0, 255)\", ArgumentError, \
-         TypeError, \"Value must be between 0..255\", 127, \"Value must be between 0.0 and 1.0, or 0 and 255\", 147, \
+         TypeError, \"Value must be between 0..255\", 127, \"Value must be between 0.0 and 1.0, or 0 and 255\", 140, \
          \"AliceBlue\", [100, 50, 25, 255], false]"
     );
 }
@@ -89,7 +89,7 @@ fn materials_add_rename_remove_purge() {
     };
     assert_eq!(
         o.result,
-        "[\"Brique\", \"Brique1\", \"Material1\", 3, [10, 20, 30, 255], 0.25, true, 0, \
+        "[\"Brique\", \"Brique1\", \"Material\", 3, [10, 20, 30, 255], 0.25, true, 0, \
          \"The provided name was not unique to the model.\", true, true, IndexError, \"Material name required\", \
          \"wrong # of arguments(2 for 0 or 1)\", [\"Brique\"], 0, nil]"
     );
@@ -140,9 +140,9 @@ fn textures_and_image_reps() {
          m.texture = nil
          r += [m.texture, m.materialType, err {{ m.texture = 5 }}]
          img = Sketchup::ImageRep.new
-         img.set_data(2, 1, 24, 4, [0, 0, 255, 255, 0, 0, 0, 0].pack('C*'))
+         img.set_data(2, 1, 24, 2, [0, 0, 255, 255, 0, 0, 0, 0].pack('C*'))
          img.save_file('{d}/rep.png')
-         r += [Sketchup::ImageRep.new.load_file('{d}/rep.png').colors.map(&:to_a),
+         r += [Sketchup::ImageRep.new('{d}/rep.png').colors.map(&:to_a),
                (img.set_data(2, 1, 24, 4, 'x') rescue $!.message), (img.load_file('{d}/rien.png') rescue $!.message)]
          m2 = Sketchup.active_model.materials.add('Image')
          m2.texture = img
@@ -153,11 +153,11 @@ fn textures_and_image_reps() {
     // A file without size: 10" wide, in the image's proportions.
     assert_eq!(
         r,
-        "[1, \"damier.png\", 4, 2, 10.0, 5.0, [127, 0, 127, 255], true, 8.0, 4.0, 20.0, 10.0, [4, 2], 32, \
+        "[1, \"damier.png\", 4, 2, 10.0, 5.0, [127, 0, 127, 255], true, 8.0, 4.0, 20.0, 10.0, 24, 24, \
          [255, 0, 0, 255], [0, 0, 255, 255], true, 2, nil, 0, \"Texture filename or nil required\", \
          [[255, 0, 0, 255], [0, 0, 255, 255]], \
          \"width, height, bits per pixel and row padding must equate to the size of the binary string\", \
-         \"failed to load image\", 2, \"image.png\"]"
+         \"failed to load image\", 2, \".jpg\"]"
     );
     assert!(dir.join("copie.png").is_file());
     let _ = std::fs::remove_dir_all(&dir);
@@ -241,7 +241,7 @@ fn layers_folders_and_errors() {
          a.page_behavior = LAYER_HIDDEN_BY_DEFAULT | LAYER_IS_HIDDEN_ON_NEW_PAGES
          r = [ls.length, a == b, ls[0].name, ls[0].display_name, ls['Toit'] == c, a.folder == f, c.folder.folder == f,
               ls.count_layers, ls.count_folders, f.count_layers, f.count_folders, a.color.to_a, a.page_behavior,
-              a.line_style.name, ls.unique_name('Murs'), (ls.add('') rescue $!.message), (ls[7] rescue $!.message),
+              a.line_style, ls.unique_name('Murs'), (ls.add('') rescue $!.message), (ls[7] rescue $!.message),
               (ls.remove(ls[0]) rescue $!.message), (ls.remove rescue $!.message),
               err { ls[0].folder = f }, err { a.page_behavior = 0x30 },
               (f.remove_folder(f) rescue $!.message), (f.add_layer(3) rescue $!.message),
@@ -260,11 +260,11 @@ fn layers_folders_and_errors() {
     };
     assert_eq!(
         o.result,
-        "[3, true, \"Layer0\", \"Untagged\", true, true, true, 1, 1, 1, 1, [255, 0, 0, 255], 33, \"Solid Line\", \
+        "[3, true, \"Layer0\", \"Untagged\", true, true, true, 1, 1, 1, 1, [255, 0, 0, 255], 33, nil, \
          \"Murs1\", \"tag name required\", \"index 7 out of range [0, 3)\", \"cannot remove default tag\", \
          \"must have 1 or 2 arguments\", \"Layer0 (Untagged) cannot appear in a folder\", \
          \"Invalid flags for visibility on new pages\", \"folder is not a child\", \"argument must be a Sketchup::Layer\", \
-         TypeError, false, false, false, NoMethodError, \"Toit\", 2, false, \"Layer0\", true, 1]"
+         TypeError, true, true, false, NoMethodError, \"Toit\", 2, false, \"Layer0\", 1, 1]"
     );
     assert_eq!(m.layers.len(), 1);
 }
@@ -406,7 +406,7 @@ fn hatch_patterns_and_line_styles() {
          m.hatch_pattern = h
          r += [m.hatch_pattern == h, hp.purge_unused, hp.size]
          ls = Sketchup.active_model.line_styles
-         r + [ls.size, ls.names.first, ls['Dotted Line'].name, ls['Rien'], (ls[99] rescue $!.class), ls.to_a.size]"
+         r + [ls.size, ls.names.first, ls['Dot'].name, ls['Rien'], (ls[99] rescue $!.class), ls.to_a.size]"
     )) else {
         return;
     };
@@ -414,8 +414,8 @@ fn hatch_patterns_and_line_styles() {
         r,
         "[1, \"Brique\", \"Hatch pattern name must be unique.\", \"Hatch pattern name cannot be empty.\", \
          \"Failed to load pattern from path.\", 2.0, 3.0, \"Parameter must be an array\", \
-         \"Texture sizes must be positive values\", true, true, false, 1, 5, \"Solid Line\", \"Dotted Line\", nil, \
-         IndexError, 5]"
+         \"Texture sizes must be positive values\", true, true, false, 1, 12, \"Solid Basic\", \"Dot\", nil, \
+         IndexError, 12]"
     );
     assert!(dir.join("out.pat").is_file());
     let _ = std::fs::remove_dir_all(&dir);

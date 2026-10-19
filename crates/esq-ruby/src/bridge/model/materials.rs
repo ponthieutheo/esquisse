@@ -64,13 +64,24 @@ pub fn summary(m: &Model, id: MaterialId) -> J {
         (Some(_), false) => 1,
         (Some(_), true) => 2,
     };
+    // `Material#color`: the texture's colour for a textured material, else
+    // the material's, with its alpha byte (the texture's colour as stored with
+    // the material's, 0 in files of older SketchUps; a new texture's is opaque).
+    let byte = e.color_alpha.unwrap_or(255);
     let color = match &e.texture {
-        Some(t) if ty == 1 => t.avg,
-        _ => x.color,
+        Some(t) if ty == 1 => [t.avg[0], t.avg[1], t.avg[2], byte],
+        _ => [x.color[0], x.color[1], x.color[2], byte],
     };
+    // The double a script gave, while the opacity is still its rounding.
+    let alpha = match e.alpha {
+        Some(a) if a as f32 == x.opacity => a,
+        _ => x.opacity as f64,
+    };
+    // Ruby gives hue, lightness, saturation; Esquisse keeps h, s, l.
+    let d = e.colorize_deltas;
     json!({
-        "id": mid(id), "name": x.name, "color": color, "alpha": x.opacity as f64, "type": ty,
-        "colorize_type": e.colorize_type, "colorize_deltas": e.colorize_deltas,
+        "id": mid(id), "name": x.name, "color": color, "alpha": alpha, "type": ty,
+        "colorize_type": e.colorize_type, "colorize_deltas": [d[0], d[2], d[1]],
         "hatch": e.hatch, "workflow": e.workflow, "owner_image": e.owner_image,
         "texture": opt_tex(&e.texture),
         "pbr": {
@@ -93,38 +104,17 @@ fn unique(m: &Model, base: &str, except: Option<MaterialId>) -> String {
     Model::unique_material_name(base, &taken)
 }
 
+/// `Materials#add`: a new material is black and fully transparent in its
+/// colour, (0, 0, 0, 0), named « Material », « Material1 »… without a name.
 fn add(c: &mut Ctx, a: &J) -> R {
-    let name = match a.get("name").and_then(J::as_str) {
-        Some(n) => unique(c.model, n, None),
-        None => default_name(c.model),
-    };
-    let id = c.model.add_material(&name, [204, 204, 204]);
+    let name = unique(c.model, a.get("name").and_then(J::as_str).unwrap_or("Material"), None);
+    let id = c.model.add_material(&name, [0, 0, 0]);
+    c.model.materials[id].ext.color_alpha = Some(0);
     Ok(summary(c.model, id))
 }
 
-/// "Material1", "Material2"…: the name SketchUp gives a material created without one.
-fn default_name(m: &Model) -> String {
-    (1..).map(|i| format!("Material{i}")).find(|n| m.find_material(n).is_none()).unwrap()
-}
-
-fn hls(rgb: [u8; 3]) -> [f64; 3] {
-    let [r, g, b] = rgb.map(|v| v as f64 / 255.0);
-    let (mx, mn) = (r.max(g).max(b), r.min(g).min(b));
-    let l = (mx + mn) / 2.0;
-    if mx == mn {
-        return [0.0, 0.0, l];
-    }
-    let d = mx - mn;
-    let s = if l > 0.5 { d / (2.0 - mx - mn) } else { d / (mx + mn) };
-    let h = if mx == r {
-        (g - b) / d + if g < b { 6.0 } else { 0.0 }
-    } else if mx == g {
-        (b - r) / d + 2.0
-    } else {
-        (r - g) / d + 4.0
-    };
-    [h * 60.0, s, l]
-}
+/// The colour a material takes when given none.
+const DEFAULT_COLOR: [u8; 3] = [64, 64, 64];
 
 fn set_tex_slot(e: &mut MaterialExt, slot: &str, t: Option<TextureData>) -> Result<(), String> {
     match slot {
@@ -162,22 +152,48 @@ fn update(c: &mut Ctx, a: &J) -> R {
     if let Some(col) = a.get("color").and_then(J::as_array)
         && col.len() >= 3
     {
-        let rgb: [u8; 3] = std::array::from_fn(|i| col[i].as_u64().unwrap_or(0).min(255) as u8);
-        if let Some(t) = &m.ext.texture {
-            // A colour set on a textured material colorizes the texture.
-            let (a, b) = (hls(t.avg), hls(rgb));
-            m.ext.colorize_deltas = [b[0] - a[0], b[1] - a[1], b[2] - a[2]];
+        // `Material#color=`: a colour (0, 0, 0, 0) takes the
+        // colorization off a colorized texture; any other is set opaque (an empty one is the
+        // default grey) and colorizes a texture, in tint when it was not colorized.
+        let rgba: [u8; 4] = std::array::from_fn(|i| col.get(i).and_then(J::as_u64).unwrap_or(255).min(255) as u8);
+        let colorized = m.ext.texture.is_some() && m.ext.colorize_deltas != [0.0; 3];
+        if rgba == [0; 4] && colorized {
+            m.ext.colorize_deltas = [0.0; 3];
+        } else {
+            let rgb = if rgba == [0; 4] { DEFAULT_COLOR } else { [rgba[0], rgba[1], rgba[2]] };
+            if let Some(t) = &m.ext.texture {
+                if !colorized {
+                    m.ext.colorize_type = 1;
+                }
+                m.ext.colorize_deltas = esq_core::meta::colorize_deltas(t.avg, rgb, m.ext.colorize_type == 0);
+                if m.ext.colorize_deltas == [0.0; 3] {
+                    m.ext.colorize_deltas = [0.0, 0.0, f64::MIN_POSITIVE];
+                }
+            }
+            m.color = rgb;
+            m.ext.color_alpha = None;
+        }
+    }
+    if let Some(al) = a.get("alpha").and_then(J::as_f64) {
+        // `Material#alpha=`: kept as a double, between 0 and 1.
+        let al = al.clamp(0.0, 1.0);
+        m.opacity = al as f32;
+        m.ext.alpha = Some(al);
+    }
+    if let Some(v) = a.get("colorize_type").and_then(J::as_u64) {
+        m.ext.colorize_type = v.min(2) as u8;
+        // SketchUp derives the offsets from the texture's average and the colour:
+        // they follow the new type. A colorized texture read from a file
+        // keeps its colour as average (`esq_skp::native::build`): its offsets stay.
+        if let Some(t) = &m.ext.texture
+            && m.ext.colorize_deltas != [0.0; 3]
+            && t.avg != m.color
+        {
+            m.ext.colorize_deltas = esq_core::meta::colorize_deltas(t.avg, m.color, m.ext.colorize_type == 0);
             if m.ext.colorize_deltas == [0.0; 3] {
                 m.ext.colorize_deltas = [0.0, 0.0, f64::MIN_POSITIVE];
             }
         }
-        m.color = rgb;
-    }
-    if let Some(al) = a.get("alpha").and_then(J::as_f64) {
-        m.opacity = al.clamp(0.0, 1.0) as f32;
-    }
-    if let Some(v) = a.get("colorize_type").and_then(J::as_u64) {
-        m.ext.colorize_type = v as u8;
     }
     if let Some(v) = a.get("hatch") {
         m.ext.hatch = v.as_u64().map(|u| u as u32);
@@ -313,10 +329,13 @@ fn tex_set(c: &mut Ctx, a: &J) -> R {
     });
     let m = &mut c.model.materials[id];
     if slot == "base" {
-        match &tex {
-            Some(t) => m.color = t.avg,
-            None => m.ext.colorize_deltas = [0.0; 3],
+        // A new texture gives its average colour (opaque) and is not colorized; none leaves a
+        // solid colour.
+        if let Some(t) = &tex {
+            m.color = t.avg;
+            m.ext.color_alpha = None;
         }
+        m.ext.colorize_deltas = [0.0; 3];
     }
     set_tex_slot(&mut m.ext, slot, tex)?;
     Ok(summary(c.model, id))

@@ -87,11 +87,12 @@ impl Turning {
         }
         let show_hidden = style.hidden_geometry;
         let faces = style.faces != FaceStyle::Wireframe;
+        let shown_tags = model.layers_shown();
         visit_all(model, style.hidden_objects, |p| {
             if !faces || !turns_with_eye(model, &p.path) {
                 return;
             }
-            let vis = |l: usize| model.layers.get(l).is_none_or(|x| x.visible);
+            let vis = |l: usize| shown_tags.get(l).copied().unwrap_or(true);
             t.cuts.push(if style.section_cuts { p.cuts.clone() } else { Vec::new() });
             let cuts = t.cuts.len() - 1;
             for (f, face) in p.ents.faces.iter() {
@@ -180,8 +181,9 @@ impl PickCache {
         let faces = style.faces != FaceStyle::Wireframe;
         c.cuts.push(Vec::new());
         let mut tess: std::collections::HashMap<usize, Vec<Option<Vec<[DVec3; 3]>>>> = Default::default();
+        let shown_tags = model.layers_shown();
         visit_all(model, style.hidden_objects, |p| {
-            let vis = |l: usize| model.layers.get(l).is_none_or(|x| x.visible);
+            let vis = |l: usize| shown_tags.get(l).copied().unwrap_or(true);
             let cuts: &[SectionPlane] = if style.section_cuts { &p.cuts } else { &[] };
             let cut_idx = match c.cuts.iter().position(|x| {
                 x.len() == cuts.len() && x.iter().zip(cuts).all(|(a, b)| a.pos == b.pos && a.normal == b.normal)
@@ -577,7 +579,14 @@ impl PickCache {
         out
     }
 
-    pub fn hits_in_rect(&self, cam: &Camera, min: DVec2, max: DVec2, crossing: bool) -> Vec<&Hit> {
+    /// For each hit seen in the window: (all its primitives inside, any inside or crossed).
+    fn rect_flags(
+        &self,
+        cam: &Camera,
+        min: DVec2,
+        max: DVec2,
+        crossing: bool,
+    ) -> std::collections::HashMap<u32, (bool, bool)> {
         let inside = |p: DVec2| p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y;
         let mut by_hit: std::collections::HashMap<u32, (bool, bool)> = std::collections::HashMap::new();
         let mut note = |h: u32, pts: &[DVec3]| {
@@ -636,13 +645,40 @@ impl PickCache {
         for h in crossed {
             by_hit.insert(h, (false, true));
         }
-        let mut out: Vec<&Hit> = by_hit
+        by_hit
+    }
+
+    pub fn hits_in_rect(&self, cam: &Camera, min: DVec2, max: DVec2, crossing: bool) -> Vec<&Hit> {
+        let mut out: Vec<&Hit> = self
+            .rect_flags(cam, min, max, crossing)
             .into_iter()
             .filter(|(_, (all, any))| if crossing { *any } else { *all })
             .map(|(h, _)| &self.hits[h as usize])
             .collect();
         out.sort_by_key(|h| format!("{:?}", h.item));
         out
+    }
+
+    /// What a window picks among the entities of context `ctx` (`PickHelper#window_pick`):
+    /// an instance counts as a whole, inside when all it shows is, crossing
+    /// when any of it is.
+    pub fn items_in_rect(
+        &self,
+        cam: &Camera,
+        min: DVec2,
+        max: DVec2,
+        crossing: bool,
+        ctx: &[InstanceId],
+    ) -> Vec<EntityRef> {
+        let mut by_item: std::collections::BTreeMap<EntityRef, (bool, bool)> = Default::default();
+        for (h, (all, any)) in self.rect_flags(cam, min, max, crossing) {
+            if let Some(e) = self.hits[h as usize].selectable(ctx) {
+                let f = by_item.entry(e).or_insert((true, false));
+                f.0 &= all;
+                f.1 |= any;
+            }
+        }
+        by_item.into_iter().filter(|(_, (all, any))| if crossing { *any } else { *all }).map(|(e, _)| e).collect()
     }
 }
 

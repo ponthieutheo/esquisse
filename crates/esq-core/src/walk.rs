@@ -66,7 +66,7 @@ pub fn visit_all<'a>(model: &'a Model, hidden_objects: bool, mut f: impl FnMut(&
             return;
         }
         for (id, inst) in p.ents.instances.iter() {
-            if (inst.hidden && !all) || !model.layers.get(inst.layer).is_none_or(|l| l.visible) {
+            if (inst.hidden && !all) || !model.layer_shown(inst.layer) {
                 continue;
             }
             let Some(def) = model.defs.get(inst.def) else { continue };

@@ -71,6 +71,13 @@ fn entity_prints(model: &esq_core::model::Model, ctx: Option<DefId>) -> BTreeMap
     for s in e.spaces.iter().filter(|s| s.id != 0) {
         out.insert(handle('p', ctx, u64::from(s.id)), fp(s));
     }
+    // An entity's attribute dictionaries are part of it: adding or changing one is a change
+    // of the entity (EntityObserver#onChangeEntity, TestUp test_attribute_dictionary_evil_observer_*).
+    for (h, print) in out.iter_mut() {
+        if let Some(attrs) = model.attr_store.get(&format!("h:{h}")) {
+            *print = fp(&(print.as_str(), attrs));
+        }
+    }
     out
 }
 

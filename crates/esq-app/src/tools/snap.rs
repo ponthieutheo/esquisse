@@ -155,12 +155,12 @@ pub fn paint_snap(o: &Overlay, s: &SnapPoint, size: f64, color: Color32) {
 
 /// A snap shows (and the Move tool offers it) unless it is hidden or its tag is.
 pub fn shown(model: &esq_core::model::Model, s: &SnapPoint) -> bool {
-    !s.hidden && model.layers.get(s.layer).is_none_or(|l| l.visible)
+    !s.hidden && model.layer_shown(s.layer)
 }
 
 /// A space shows unless it is hidden or its tag is.
 pub fn space_shown(model: &esq_core::model::Model, s: &Space) -> bool {
-    !s.hidden && model.layers.get(s.layer).is_none_or(|l| l.visible)
+    !s.hidden && model.layer_shown(s.layer)
 }
 
 /// Length of a snap's arrow on screen (pixels), as drawn and as picked.

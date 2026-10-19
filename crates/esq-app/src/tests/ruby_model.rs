@@ -221,3 +221,187 @@ fn active_path_follows_the_edit_context() {
     assert_eq!(o.result, "[nil, true, true, 1, true, \"Cannot open instance path with locked instances\", nil]");
     assert!(h.st.ctx_changed && h.st.ctx.is_empty());
 }
+
+/// `erase_entities` effaçait le groupe en cours d'édition : SketchUp lève ArgumentError
+/// (TestUp test_erase_entities_active_entities) ; un autre groupe s'efface.
+#[test]
+fn the_open_group_cannot_be_erased() {
+    let mut h = host();
+    let mut doc = Document::new(Model::new());
+    let Some(o) = run(
+        &mut h,
+        &mut doc,
+        "m = Sketchup.active_model
+         g = m.entities.add_group
+         g.entities.add_line([0, 0, 0], [9, 9, 9])
+         g2 = m.entities.add_group
+         g2.entities.add_line([0, 0, 0], [9, 9, 9])
+         m.active_path = [g]
+         a = begin; m.entities.erase_entities(g); rescue => e; \"#{e.class}: #{e.message}\"; end
+         m.entities.erase_entities(g2)
+         r = [a, g.deleted?, g2.deleted?]
+         m.active_path = nil
+         # A component: every instance of the definition being edited stays, the definition too.
+         d = m.definitions.add('Porte')
+         d.entities.add_line([0, 0, 0], [1, 1, 1])
+         i1 = m.entities.add_instance(d, Geom::Transformation.new)
+         i2 = m.entities.add_instance(d, Geom::Transformation.new([5, 0, 0]))
+         m.active_path = [i1]
+         r << begin; m.entities.erase_entities(i2); rescue => e; e.class; end
+         r << begin; m.definitions.remove(d); rescue => e; \"#{e.class}: #{e.message}\"; end
+         r << begin; i1.erase!; rescue => e; e.class; end
+         m.active_path = nil
+         r + [i2.deleted?, m.definitions.remove(d), i1.deleted?]",
+    ) else {
+        return;
+    };
+    // Drawingelement#erase! too (TestUp test_erase_Bang_active_entities).
+    assert_eq!(
+        o.result,
+        "[\"ArgumentError: cannot remove an instance in the active editing path\", false, true, ArgumentError, \
+         \"ArgumentError: cannot remove definition with an instance in the active editing path\", ArgumentError, \
+         false, true, true]"
+    );
+}
+
+/// `DefinitionList#load` du fichier du modèle lui-même : SketchUp refuse « You cannot insert a
+/// component or model into itself. » (TestUp test_load_recursive_model).
+#[test]
+fn a_model_does_not_load_into_itself() {
+    let dir = std::env::temp_dir().join(format!("esq_model_recursif_{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    let f = dir.join("maison.skp").to_string_lossy().replace('\\', "/");
+    let mut h = host();
+    let mut doc = Document::new(Model::new());
+    let Some(o) = run(
+        &mut h,
+        &mut doc,
+        &format!(
+            "m = Sketchup.active_model
+             m.entities.add_face([0,0,0], [10,0,0], [10,10,0])
+             m.save('{f}')
+             n = m.definitions.size
+             r = begin; m.definitions.load('{f}'); rescue => e; \"#{{e.class}}: #{{e.message}}\"; end
+             [r, m.definitions.size - n]"
+        ),
+    ) else {
+        return;
+    };
+    let _ = std::fs::remove_dir_all(&dir);
+    assert_eq!(o.result, "[\"RuntimeError: You cannot insert a component or model into itself.\", 0]");
+}
+
+/// `Sketchup.open_file` d'un fichier d'un SketchUp plus récent :
+/// l'ancienne forme n'ouvre pas un fichier qu'on peut lire avec avertissement (false, TestUp
+/// test_open_file_legacy_overload_should_not_open_soft_block) ; avec with_status: il s'ouvre
+/// (LOAD_STATUS_SUCCESS_MORE_RECENT) ; un fichier illisible ne s'ouvre jamais.
+#[test]
+fn newer_files_open_like_in_sketchup() {
+    let dir = std::env::temp_dir().join(format!("esq_model_recent_{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    let mut m = Model::new();
+    m.root.add_polyline(
+        &[esq_core::glam::DVec3::ZERO, esq_core::glam::DVec3::X * 100.0, esq_core::glam::DVec3::new(100.0, 100.0, 0.0)],
+        true,
+        false,
+    );
+    let vff = esq_skp::native::write::write(&m, None, None, &Default::default()).unwrap();
+    let at = vff.windows(3).position(|w| w == b"VFF").unwrap();
+    let (mut soft, mut hard) = (vff.clone(), vff.clone());
+    soft[at + 7..at + 9].copy_from_slice(&1000u16.to_le_bytes());
+    hard[at + 5..at + 7].copy_from_slice(&1000u16.to_le_bytes());
+    std::fs::write(dir.join("soft.skp"), &soft).unwrap();
+    std::fs::write(dir.join("hard.skp"), &hard).unwrap();
+    let d = dir.to_string_lossy().replace('\\', "/");
+    let mut h = host();
+    let mut doc = Document::new(Model::new());
+    let Some(o) = run(
+        &mut h,
+        &mut doc,
+        &format!(
+            "[Sketchup.open_file('{d}/soft.skp'), Sketchup.open_file('{d}/hard.skp', with_status: true),
+              Sketchup.open_file('{d}/soft.skp', with_status: true), Sketchup.active_model.entities.grep(Sketchup::Face).size]"
+        ),
+    ) else {
+        return;
+    };
+    let _ = std::fs::remove_dir_all(&dir);
+    assert_eq!(o.result, "[false, false, 1, 1]");
+}
+
+/// `DefinitionList#import` ne lisait qu'OBJ et STL : il passe par les importeurs de
+/// l'application, comme Model#import (DWG, DXF, DAE, 3DS… : TestUp test_import), et rend une
+/// définition que rien ne place.
+#[test]
+fn definitions_import_through_the_application() {
+    let dir = std::env::temp_dir().join(format!("esq_model_import_{}", std::process::id()));
+    let _ = std::fs::create_dir_all(&dir);
+    std::fs::write(dir.join("tri.obj"), "v 0 0 0\nv 10 0 0\nv 0 10 0\nf 1 2 3\n").unwrap();
+    std::fs::write(dir.join("rien.xyz"), "?").unwrap();
+    let d = dir.to_string_lossy().replace('\\', "/");
+    let mut h = host();
+    let mut doc = Document::new(Model::new());
+    let Some(o) = run(
+        &mut h,
+        &mut doc,
+        &format!(
+            "m = Sketchup.active_model
+             d = m.definitions.import('{d}/tri.obj')
+             [d.class, d.entities.grep(Sketchup::Face).size, d.instances.size, m.entities.size, d.path == '{d}/tri.obj',
+              begin; m.definitions.import('{d}/rien.xyz'); rescue => e; e.class; end]"
+        ),
+    ) else {
+        return;
+    };
+    let _ = std::fs::remove_dir_all(&dir);
+    assert_eq!(o.result, "[Sketchup::ComponentDefinition, 1, 0, 0, true, ArgumentError]");
+}
+
+/// `explode` défaisait le groupe en cours d'édition : SketchUp rend false et le laisse
+/// (TestUp test_explode_active_entities) ; hors du chemin, il éclate.
+#[test]
+fn the_open_group_does_not_explode() {
+    let mut h = host();
+    let mut doc = Document::new(Model::new());
+    let Some(o) = run(
+        &mut h,
+        &mut doc,
+        "m = Sketchup.active_model
+         g = m.entities.add_group
+         g.entities.add_face([0, 0, 0], [5, 0, 0], [5, 9, 0], [0, 9, 0])
+         m.active_path = [g]
+         r = [g.explode, g.deleted?]
+         m.active_path = nil
+         r + [g.explode.size, g.deleted?]",
+    ) else {
+        return;
+    };
+    assert_eq!(o.result, "[false, false, 5, true]");
+}
+
+/// A model a script closes takes its entities' observers with it: the next model's
+/// definition of the same number does not inherit them (TestUp
+/// test_delete_all_attributes_on_dynamic_property_dictionary after TC_Sketchup_ComponentDefinition).
+#[test]
+fn a_closed_models_observers_go_with_it() {
+    let _l = crate::prefs::TEMPLATE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut h = host();
+    let mut doc = Document::new(Model::new());
+    let Some(o) = run(
+        &mut h,
+        &mut doc,
+        "heard = []
+         ob = Class.new(Sketchup::EntityObserver) { define_method(:onChangeEntity) { |e| heard << e.name } }.new
+         d = Sketchup.active_model.definitions.add('Avant')
+         d.add_observer(ob)
+         d.name = 'Avant2'
+         n = heard.size
+         Sketchup.active_model.close(true)
+         d2 = Sketchup.active_model.definitions.add('Apres')
+         d2.name = 'Encore'
+         [n, heard.size, d2.name]",
+    ) else {
+        return;
+    };
+    assert_eq!(o.result, "[1, 1, \"Encore\"]");
+}

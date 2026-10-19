@@ -423,7 +423,7 @@ pub fn add_annotations(d: &mut HlrDrawing, cam: &Camera, model: &esq_core::model
     let mut list = Vec::new();
     esq_core::walk::visit(model, |p| {
         for (_, a) in p.ents.annots.iter() {
-            if !a.hidden && model.layers.get(a.layer).is_none_or(|x| x.visible) {
+            if !a.hidden && model.layer_shown(a.layer) {
                 list.push(a.transformed(&p.xform));
             }
         }

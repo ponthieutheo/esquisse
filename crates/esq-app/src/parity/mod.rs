@@ -29,8 +29,9 @@ pub enum Impl {
     /// In Esquisse but hollow: present without acting as in SketchUp,
     /// with what is wrong. Counted as missing until fixed.
     Partial(&'static str),
-    /// A Trimble online service (cloud, comments, AI, 3D Warehouse…) whose Esquisse version, on
-    /// servers the user chooses (`services/`), is not there yet. Counted as missing.
+    /// A Trimble online service (cloud, comments shared on Trimble Connect, AI, 3D Warehouse…):
+    /// abandoned, Esquisse has no account and no server (its comments stay in the model,
+    /// `comments/`). Counted apart, neither done nor missing.
     Online,
 }
 
@@ -72,44 +73,54 @@ mod tests {
         let mut per = Vec::new();
         for (name, t) in DOMAINS {
             let (mut d_total, mut d_done, mut d_online) = (0, 0, 0);
-            let mut missing = Vec::new();
+            let (mut missing, mut abandoned) = (Vec::new(), Vec::new());
             for it in *t {
-                d_total += 1;
                 match it.imp {
                     Impl::Missing => missing.push(format!("`{}` {}", it.id, it.label)),
                     Impl::Partial(why) => missing.push(format!("`{}` {} (creux : {why})", it.id, it.label)),
                     Impl::Online => {
                         d_online += 1;
-                        missing.push(format!("`{}` {} (service en ligne à refaire)", it.id, it.label));
+                        abandoned.push(format!("`{}` {}", it.id, it.label));
+                        continue;
                     }
                     _ => d_done += 1,
                 }
+                d_total += 1;
             }
             total += d_total;
             done += d_done;
             online += d_online;
-            per.push(format!("{name} : {d_done}/{d_total} (dont {d_online} services en ligne à refaire)"));
-            report.push_str(&format!("\n## {name} — {d_done}/{d_total}\n\n"));
+            per.push(format!("{name} : {d_done}/{d_total}, {d_online} services en ligne abandonnés"));
+            report.push_str(&format!("\n## {name} — {d_done}/{d_total}\n"));
+            if !missing.is_empty() {
+                report.push('\n');
+            }
             for m in missing {
                 report.push_str(&format!("- {m}\n"));
             }
+            if !abandoned.is_empty() {
+                report.push_str("\nServices en ligne de Trimble abandonnés :\n\n");
+                for a in abandoned {
+                    report.push_str(&format!("- {a}\n"));
+                }
+            }
         }
         let pct = 100.0 * done as f64 / total as f64;
-        eprintln!("Parité SketchUp : {done}/{total} ({pct:.1} %), {online} services en ligne encore à refaire");
+        eprintln!("Parité SketchUp : {done}/{total} ({pct:.1} %), hors {online} services en ligne abandonnés");
         for p in &per {
             eprintln!("  {p}");
         }
         if std::env::var("ESQ_WRITE_PARITY").is_ok() {
             let head = format!(
-                "\n**{done}/{total} ({pct:.1} %)**, dont {online} services en ligne de Trimble encore à refaire \
-                 avec les services d'Esquisse.\n"
+                "\n**{done}/{total} ({pct:.1} %)**, hors les {online} services en ligne de Trimble, abandonnés : \
+                 Esquisse n'a ni compte ni serveur.\n"
             );
             report.insert_str(report.find('\n').unwrap() + 1, &head);
             std::fs::write(concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/sketchup-parity.md"), report).unwrap();
         }
         // Floor: parity must not go down (raise it as domains are completed; at most the exact
-        // ratio, 332/343 = 96.79…).
-        assert!(pct >= 96.7, "parité {pct:.1} %");
+        // ratio, 332/332 = 100 %).
+        assert!(pct >= 100.0, "parité {pct:.1} %");
     }
 
     /// Audit of the labels: each command of the table that SketchUp puts

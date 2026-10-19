@@ -370,7 +370,7 @@ fn vector3d_products() {
     raises!("Geom::Vector3d.new.dot([1])", "ArgumentError: wrong number of values in array");
     check!("(Geom::Vector3d.new(1, 2, 3) + Geom::Vector3d.new(1, 1, 1)).to_a", "[2.0, 3.0, 4.0]");
     check!("(Geom::Vector3d.new(1, 2, 3) - [1, 1, 1]).to_a", "[0.0, 1.0, 2.0]");
-    check!("(Geom::Vector3d.new(1, 2, 3) * 2).to_a", "[2.0, 4.0, 6.0]"); // extension of Esquisse
+    raises!("Geom::Vector3d.new(1, 2, 3) * 2", "ArgumentError: Cannot convert argument to Geom::Vector3d");
     check!("Geom::Vector3d.linear_combination(2, [1, 0, 0], 3, Geom::Vector3d.new(0, 1, 0)).to_a", "[2.0, 3.0, 0.0]");
     check!("Geom::Vector3d.linear_combination(1, [1, 0, 0], 2, [0, 1, 0], 3, [0, 0, 1]).to_a", "[1.0, 2.0, 3.0]");
     raises!(
@@ -926,7 +926,7 @@ fn vector2d_basics() {
         "[Geom::Vector2d.new(1, 2) == [1, 2], Geom::Vector2d.new(1, 2) == Geom::Vector2d.new(2, 2)]",
         "[true, false]"
     );
-    raises!("Geom::Vector2d.new.length = 3", "TypeError: Cannot set the length of a zero length vector");
+    raises!("Geom::Vector2d.new.length = 3", "ArgumentError: Cannot set the length of a zero length vector");
     raises!(
         "Geom::Vector2d.new(1, 0).parallel?([0, 0])",
         "ArgumentError: Cannot create unit vector from zero length vector"
@@ -942,12 +942,13 @@ fn transformation2d_basics() {
         "(Geom::Transformation2d.translation(Geom::Vector2d.new(1, 2)) * Geom::Vector2d.new(1, 1)).inspect",
         "\"Vector2d(1, 1)\""
     );
+    // In single precision like SketchUp: cosf(90°) is -4.37e-8 (SUTransformation2DRotation).
     check!(
         "(Geom::Transformation2d.rotation([0, 0], 90.degrees) * Geom::Point2d.new(1, 0)).to_a.map { |v| v.round(9) }",
-        "[0.0, 1.0]"
+        "[-4.4e-08, 1.0]"
     );
     check!(
-        "(Geom::Transformation2d.rotation([1, 1], 90.degrees) * Geom::Point2d.new(2, 1)).to_a.map { |v| v.round(9) }",
+        "(Geom::Transformation2d.rotation([1, 1], 90.degrees) * Geom::Point2d.new(2, 1)).to_a.map { |v| v.round(6) }",
         "[1.0, 2.0]"
     );
     check!("(Geom::Transformation2d.scaling(2) * [1, 1])", "[2.0, 2.0]");
@@ -1116,8 +1117,8 @@ fn latlong_and_utm() {
     check!("Geom::LatLong.new([10, 20]).to_a", "[10.0, 20.0]");
     check!("Geom::LatLong.new(Geom::LatLong.new(10, 20)).to_a", "[10.0, 20.0]");
     check!("Geom::LatLong.new.to_a", "[0.0, 0.0]");
-    raises!("Geom::LatLong.new(91, 0)", "ArgumentError: Invalid Latitude Value");
-    raises!("Geom::LatLong.new(0, 181)", "ArgumentError: Invalid Longitude Value");
+    // SketchUp keeps what it is given (TestUp test_latitude_integers).
+    check!("Geom::LatLong.new(91, 181).to_a", "[91.0, 181.0]");
     raises!("Geom::LatLong.new([1])", "ArgumentError: wrong number of values in array");
     raises!("Geom::LatLong.new(1, 2, 3)", "ArgumentError: wrong # of arguments(3 for 3)");
     // Paris -> UTM 31U, known reference values
@@ -1125,9 +1126,11 @@ fn latlong_and_utm() {
         "u = Geom::LatLong.new(48.8566, 2.3522).to_utm; [u.zone_number, u.zone_letter, u.x.round(0), u.y.round(0), u.to_a.size]",
         "[31, \"U\", 452483, 5411717, 4]"
     );
+    // In the south SketchUp gives 10 000 km less the (negative) distance to the equator,
+    // not 10 000 km plus it, and reads it back the same way.
     check!(
         "u = Geom::LatLong.new(-33.8688, 151.2093).to_utm; [u.zone_number, u.zone_letter, u.x.round(0), u.y.round(0)]",
-        "[56, \"H\", 334369, 6250948]"
+        "[56, \"H\", 334369, 13749052]"
     );
     check!(
         "u = Geom::UTM.new(31, 'U', 452483.0, 5411717.0); l = u.to_latlong; [l.latitude.round(3), l.longitude.round(3)]",
@@ -1148,7 +1151,10 @@ fn latlong_and_utm() {
     check!("Geom::UTM.new(31, 'U', 452000.5, 5411722.25).to_s", "\"UTM(31 U 452000.50000 5411722.25000)\"");
     check!("Geom::UTM.new([31, 'U', 1.0, 2.0]).to_a", "[31, \"U\", 1.0, 2.0]");
     check!("Geom::UTM.new(Geom::UTM.new(31, 'U', 1.0, 2.0)).to_a", "[31, \"U\", 1.0, 2.0]");
-    check!("Geom::UTM.new(Geom::LatLong.new(48.8566, 2.3522)).zone_number", "31");
+    raises!(
+        "Geom::UTM.new(Geom::LatLong.new(48.8566, 2.3522))",
+        "TypeError: wrong argument type Geom::LatLong (expected Array)"
+    );
     check!("Geom::UTM.new.to_a", "[0, \"A\", 0.0, 0.0]");
     raises!("Geom::UTM.new(1, 2)", "ArgumentError: wrong # of arguments(2 for 3)");
     // polar stereographic outside 80S..84N

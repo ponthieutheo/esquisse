@@ -369,6 +369,14 @@ fn core(c: &mut Ctx, op: &str, a: &J) -> R {
                 attributes: Default::default(),
                 ext: Default::default(),
             });
+            // An instance of a component gets the advanced attributes, and its definition too.
+            if !is_group && !c.model.is_image_def(def) {
+                use esq_core::model::{DEFINITION_SET as D, INSTANCE_SET as I, give_advanced};
+                give_advanced(&mut c.model.defs[def].attributes, (D.0, &D.1));
+                if let Some(x) = c.model.entities_mut(ctx).instances.get_mut(i) {
+                    give_advanced(&mut x.attributes, (I.0, &I.1));
+                }
+            }
             Ok(json!(handle('i', ctx, i.data().as_ffi())))
         }
         "ents.make_group" => {

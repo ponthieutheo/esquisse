@@ -131,11 +131,6 @@ pub fn credits(m: &Model) -> (Vec<String>, Vec<(String, String)>) {
     (authors, comps)
 }
 
-/// The user who claims credit: the Windows user name.
-pub fn user_name() -> String {
-    std::env::var("USERNAME").or_else(|_| std::env::var("USER")).unwrap_or_else(|_| "Utilisateur".into())
-}
-
 /// Claim Credit: the user becomes an author of the model and of the components no one claimed.
 pub fn claim_credit(m: &mut Model, who: &str) {
     let mut authors = credits(m).0;
@@ -162,7 +157,7 @@ pub fn credits_page(app: &mut EsquisseApp, ui: &mut egui::Ui) {
         if authors.is_empty() { "Auteurs: Inconnus".to_string() } else { format!("Auteurs: {}", authors.join(", ")) };
     let r = ui.label(text.clone());
     name_widget(ui, &r, "Auteurs du modèle", Some(&text));
-    let who = user_name();
+    let who = crate::settings::user_name();
     if ui
         .add_enabled(!authors.contains(&who), egui::Button::new("Revendiquer le crédit"))
         .on_hover_text(format!("Signer le modèle et ses composants au nom de « {who} »"))

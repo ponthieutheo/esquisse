@@ -11,7 +11,8 @@ license = "MIT"
 glam = { version = "0.34", features = ["serde"] }
 slotmap = { version = "1.1", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+# float_roundtrip: a number read back is the one written (the Ruby bridge passes floats as JSON).
+serde_json = { version = "1", features = ["float_roundtrip"] }
 indexmap = { version = "2", features = ["serde"] }
 earcutr = "0.5"
 anyhow = "1"

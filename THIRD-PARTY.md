@@ -38,13 +38,12 @@ modèles ni ces extensions ne sont dans le dépôt.
 
 ### Récupéré à la compilation (non versionné)
 
-- **Bibliothèques Rust** : 307 crates en dépendances normales de l'exécutable pour
+- **Bibliothèques Rust** : 287 crates en dépendances normales de l'exécutable pour
   `x86_64-pc-windows-msvc` (liste ci-dessous, d'après `cargo metadata`). Toutes sous licences
   permissives ; quand une crate offre un choix, Esquisse la reçoit sous la licence permissive
   (`self_cell` : Apache-2.0). Les polices par défaut d'egui (`epaint_default_fonts`) sont sous
-  OFL-1.1 et Ubuntu Font Licence ; les certificats de `webpki-roots` sous CDLA-Permissive-2.0 ;
-  les données ICU sous Unicode-3.0. Les textes complets sont réunis par
-  `crates/esq-app/examples/licences.rs` dans `licences\rust-crates.txt` du paquet.
+  OFL-1.1 et Ubuntu Font Licence ; les données ICU sous Unicode-3.0. Les textes complets sont
+  réunis par `crates/esq-app/examples/licences.rs` dans `licences\rust-crates.txt` du paquet.
 - **Runtime Ruby 3.2** : distribution RubyInstaller (`github.com/oneclick/rubyinstaller2`),
   copiée par `tools/ruby-dev.ps1` (développement, CI) ou `tools/package.ps1` (paquet). Ruby est
   sous licence Ruby ou BSD-2-Clause ; RubyInstaller sous licence BSD-3-Clause ; ses DLL
@@ -107,13 +106,12 @@ these models nor these extensions are in the repository.
 
 ### Fetched at build time (not in the repository)
 
-- **Rust libraries**: 307 crates are normal dependencies of the executable for
+- **Rust libraries**: 287 crates are normal dependencies of the executable for
   `x86_64-pc-windows-msvc` (list below, from `cargo metadata`). All are under permissive
   licences; where a crate offers a choice, Esquisse takes the permissive one (`self_cell`:
   Apache-2.0). egui's default fonts (`epaint_default_fonts`) are under OFL-1.1 and the Ubuntu
-  Font Licence; `webpki-roots` certificates under CDLA-Permissive-2.0; ICU data under
-  Unicode-3.0. `crates/esq-app/examples/licences.rs` gathers the full texts into
-  `licences\rust-crates.txt` in the package.
+  Font Licence; ICU data under Unicode-3.0. `crates/esq-app/examples/licences.rs` gathers the
+  full texts into `licences\rust-crates.txt` in the package.
 - **Ruby 3.2 runtime**: the RubyInstaller distribution (`github.com/oneclick/rubyinstaller2`),
   copied by `tools/ruby-dev.ps1` (development, CI) or `tools/package.ps1` (package). Ruby is
   under the Ruby licence or BSD-2-Clause; RubyInstaller under BSD-3-Clause; its companion DLLs:
@@ -143,7 +141,7 @@ with, endorsed or sponsored by these companies.
 ## Crates Rust / Rust crates
 
 <details>
-<summary>307 crates (nom, version, licence / name, version, licence)</summary>
+<summary>287 crates (nom, version, licence / name, version, licence)</summary>
 
 | Crate | Version | Licence |
 |---|---|---|
@@ -165,8 +163,6 @@ with, endorsed or sponsored by these companies.
 | anyhow | 1.0.104 | MIT OR Apache-2.0 |
 | arrayvec | 0.7.8 | MIT OR Apache-2.0 |
 | ash | 0.38.0+1.3.281 | MIT OR Apache-2.0 |
-| base64 | 0.22.1 | MIT OR Apache-2.0 |
-| base64 | 0.23.1 | MIT OR Apache-2.0 |
 | bit_field | 0.10.3 | Apache-2.0 OR MIT |
 | bitflags | 1.3.2 | MIT OR Apache-2.0 |
 | bitflags | 2.13.2 | MIT OR Apache-2.0 |
@@ -177,7 +173,6 @@ with, endorsed or sponsored by these companies.
 | bumpalo | 3.20.3 | MIT OR Apache-2.0 |
 | bytemuck | 1.25.2 | Zlib OR Apache-2.0 OR MIT |
 | bytemuck_derive | 1.12.1 | Zlib OR Apache-2.0 OR MIT |
-| byteorder | 1.5.0 | Unlicense OR MIT |
 | byteorder-lite | 0.1.0 | Unlicense OR MIT |
 | bytes | 1.12.1 | MIT |
 | cadkit-core | 0.3.0 | MIT OR Apache-2.0 |
@@ -230,7 +225,6 @@ with, endorsed or sponsored by these companies.
 | foldhash | 0.2.0 | Zlib |
 | font-types | 0.12.7 | MIT OR Apache-2.0 |
 | form_urlencoded | 1.2.2 | MIT OR Apache-2.0 |
-| getrandom | 0.2.17 | MIT OR Apache-2.0 |
 | getrandom | 0.3.4 | MIT OR Apache-2.0 |
 | glam | 0.34.1 | MIT OR Apache-2.0 |
 | glifo | 0.3.0 | Apache-2.0 OR MIT |
@@ -253,7 +247,6 @@ with, endorsed or sponsored by these companies.
 | hayro-syntax | 0.8.0 | Apache-2.0 OR MIT |
 | heck | 0.5.0 | MIT OR Apache-2.0 |
 | http | 1.5.0 | MIT OR Apache-2.0 |
-| httparse | 1.10.1 | MIT OR Apache-2.0 |
 | icu_collections | 2.3.0 | Unicode-3.0 |
 | icu_locale_core | 2.3.0 | Unicode-3.0 |
 | icu_normalizer | 2.3.0 | Unicode-3.0 |
@@ -271,7 +264,6 @@ with, endorsed or sponsored by these companies.
 | itoa | 1.0.18 | MIT OR Apache-2.0 |
 | jiff | 0.2.38 | Unlicense OR MIT |
 | jiff-core | 0.1.1 | Unlicense OR MIT |
-| keyring | 3.6.3 | MIT OR Apache-2.0 |
 | khronos-egl | 6.0.0 | MIT OR Apache-2.0 |
 | kurbo | 0.13.1 | Apache-2.0 OR MIT |
 | lebe | 0.5.3 | BSD-3-Clause |
@@ -339,13 +331,9 @@ with, endorsed or sponsored by these companies.
 | regex-syntax | 0.8.11 | MIT OR Apache-2.0 |
 | renderdoc-sys | 1.1.0 | MIT OR Apache-2.0 |
 | rfd | 0.17.2 | MIT |
-| ring | 0.17.14 | Apache-2.0 AND ISC |
 | roxmltree | 0.21.1 | MIT OR Apache-2.0 |
 | rustc-hash | 1.1.0 | Apache-2.0 OR MIT |
 | rustc-hash | 2.1.3 | Apache-2.0 OR MIT |
-| rustls | 0.23.46 | Apache-2.0 OR ISC OR MIT |
-| rustls-pki-types | 1.15.1 | MIT OR Apache-2.0 |
-| rustls-webpki | 0.103.15 | ISC |
 | scopeguard | 1.2.0 | MIT OR Apache-2.0 |
 | self_cell | 1.3.0 | Apache-2.0 OR GPL-2.0-only |
 | serde | 1.0.229 | MIT OR Apache-2.0 |
@@ -365,7 +353,6 @@ with, endorsed or sponsored by these companies.
 | static_assertions | 1.1.0 | MIT OR Apache-2.0 |
 | strum | 0.28.0 | MIT |
 | strum_macros | 0.28.0 | MIT |
-| subtle | 2.6.1 | BSD-3-Clause |
 | syn | 2.0.119 | MIT OR Apache-2.0 |
 | syn | 3.0.9 | MIT OR Apache-2.0 |
 | synstructure | 0.14.0 | MIT |
@@ -390,19 +377,14 @@ with, endorsed or sponsored by these companies.
 | unicode-properties | 0.1.4 | MIT OR Apache-2.0 |
 | unicode-segmentation | 1.13.3 | MIT OR Apache-2.0 |
 | unicode-width | 0.2.2 | MIT OR Apache-2.0 |
-| untrusted | 0.9.0 | ISC |
-| ureq | 3.4.2 | MIT OR Apache-2.0 |
-| ureq-proto | 0.6.4 | MIT OR Apache-2.0 |
 | url | 2.5.8 | MIT OR Apache-2.0 |
 | utf8_iter | 1.0.4 | Apache-2.0 OR MIT |
 | utf8parse | 0.2.2 | Apache-2.0 OR MIT |
-| utf8-zero | 0.8.1 | MIT OR Apache-2.0 |
 | uuid | 1.28.0 | Apache-2.0 OR MIT |
 | vello_common | 0.2.0 | Apache-2.0 OR MIT |
 | vello_common | 0.3.0 | Apache-2.0 OR MIT |
 | vello_cpu | 0.2.0 | Apache-2.0 OR MIT |
 | vello_cpu | 0.3.0 | Apache-2.0 OR MIT |
-| webpki-roots | 1.0.9 | CDLA-Permissive-2.0 |
 | web-time | 1.1.0 | MIT OR Apache-2.0 |
 | webview2-com | 0.39.1 | MIT |
 | webview2-com-macros | 0.8.1 | MIT |
@@ -417,7 +399,6 @@ with, endorsed or sponsored by these companies.
 | winapi-util | 0.1.11 | Unlicense OR MIT |
 | windows | 0.62.2 | MIT OR Apache-2.0 |
 | windows_x86_64_msvc | 0.52.6 | MIT OR Apache-2.0 |
-| windows_x86_64_msvc | 0.53.1 | MIT OR Apache-2.0 |
 | windows-collections | 0.3.2 | MIT OR Apache-2.0 |
 | windows-core | 0.62.2 | MIT OR Apache-2.0 |
 | windows-future | 0.3.2 | MIT OR Apache-2.0 |
@@ -428,10 +409,8 @@ with, endorsed or sponsored by these companies.
 | windows-result | 0.4.1 | MIT OR Apache-2.0 |
 | windows-strings | 0.5.1 | MIT OR Apache-2.0 |
 | windows-sys | 0.52.0 | MIT OR Apache-2.0 |
-| windows-sys | 0.60.2 | MIT OR Apache-2.0 |
 | windows-sys | 0.61.2 | MIT OR Apache-2.0 |
 | windows-targets | 0.52.6 | MIT OR Apache-2.0 |
-| windows-targets | 0.53.5 | MIT OR Apache-2.0 |
 | windows-threading | 0.2.1 | MIT OR Apache-2.0 |
 | windows-version | 0.1.7 | MIT OR Apache-2.0 |
 | winit | 0.30.13 | Apache-2.0 |
@@ -443,7 +422,6 @@ with, endorsed or sponsored by these companies.
 | zerocopy-derive | 0.8.63 | BSD-2-Clause OR Apache-2.0 OR MIT |
 | zerofrom | 0.1.8 | Unicode-3.0 |
 | zerofrom-derive | 0.1.8 | Unicode-3.0 |
-| zeroize | 1.9.1 | Apache-2.0 OR MIT |
 | zerotrie | 0.2.5 | Unicode-3.0 |
 | zerovec | 0.11.8 | Unicode-3.0 |
 | zerovec-derive | 0.11.6 | Unicode-3.0 |

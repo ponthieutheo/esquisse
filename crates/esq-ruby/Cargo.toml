@@ -13,4 +13,5 @@ serde_json.workspace = true
 anyhow.workspace = true
 log.workspace = true
 libloading = "0.8"
-image = { version = "0.25", default-features = false, features = ["png", "jpeg", "bmp"] }
+# ImageRep reads what SketchUp's image reader reads (gif: MIT OR Apache-2.0, via `image`).
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "bmp", "gif", "tga", "tiff"] }

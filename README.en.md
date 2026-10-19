@@ -49,8 +49,8 @@ The user interface is in French for now; the screenshots in this repository show
 - **Application features**: 332 of 332 (commands, tools, file formats, panels, Model Info,
   Preferences), excluding Trimble's online services.
 - **Ruby API**: all 1,855 methods of the SketchUp 2026 API exist; the official API test suite
-  (TestUp) passes 2,563 of 3,020 tests.
-- **Tests**: 1,366 automated tests.
+  (TestUp) passes 2,895 of 3,020 tests.
+- **Tests**: 1,443 automated tests.
 
 ## What you can do
 
@@ -128,7 +128,8 @@ statistics…), panel trays, toolbars, command search.
 - The interface is French only, and Esquisse runs on Windows 10 and 11 (64-bit) only.
 - Encrypted extensions (`.rbe`, `.rbs`) do not load, and two menu entries are still greyed
   out: the Dynamic Components Interact tool and the location pin.
-- 457 TestUp tests do not pass yet, and 1 real `.skp` file out of 1,967 still differs from the
+- 125 TestUp tests do not pass yet (65 of them skipped by the suite itself, and 20 that need
+  files bundled with SketchUp), and 1 real `.skp` file out of 1,967 still differs from the
   SDK.
 - Video export needs ffmpeg, which is not bundled.
 - There is no release yet: Esquisse is built from source.

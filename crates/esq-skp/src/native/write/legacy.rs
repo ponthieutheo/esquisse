@@ -682,6 +682,8 @@ impl W<'_> {
                 Some(k("CComponentInstance", id))
             } else if e.groups.iter().any(|g| g.el.id == id) {
                 Some(k("CGroup", id))
+            } else if e.images.iter().any(|i| i.inst.el.id == id) {
+                Some(k("CImage", id))
             } else {
                 None
             }

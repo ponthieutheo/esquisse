@@ -374,7 +374,8 @@ module Sketchup
       r['found'] ? Esq::Attr.dec(r['v']) : nil
     end
 
-    def parent; AttributeDictionaries.new(@owner); end
+    # A deleted dictionary has no parent: TypeError, as every method of a deleted entity.
+    def parent; pairs; AttributeDictionaries.new(@owner); end
   end
 
   # ====================================================================== Behavior
@@ -683,7 +684,9 @@ module Sketchup
       self
     end
 
+    # an instance of the path being edited is not exploded (false).
     def explode
+      return false if (Sketchup.active_model.active_path || []).include?(self)
       hs = Esq.icall('inst.explode', { 'h' => @handle }, esq_typename)
       hs ? hs.map { |h| Entity.wrap(h) } : false
     end
@@ -699,11 +702,7 @@ module Sketchup
     end
 
     def glued_to=(target)
-      to = if target.nil? then nil
-           elsif target.is_a?(Entity) && target.respond_to?(:handle) then target.handle
-           else raise ArgumentError, 'wrong type - expected Sketchup::Face, Sketchup::Group, SketchUp::Image or Sketchup::ComponentInstance'
-           end
-      Esq.icall('inst.glue', { 'h' => @handle, 'to' => to }, esq_typename)
+      Esq.icall('inst.glue', { 'h' => @handle, 'to' => Esq.glue_target(target) }, esq_typename)
       nil
     end
 
@@ -877,7 +876,26 @@ module Sketchup
       end
     end
 
-    def live_component?; !attribute_dictionary('SU_LiveComponent').nil?; end
+    # un composant qui a SU_LiveComponent ; un groupe dont une
+    # copie est rangée dans un tel composant (ou dans un groupe qui l'est, de proche en proche).
+    def live_component?
+      return true unless attribute_dictionary('SU_LiveComponent').nil?
+      return false unless group?
+      seen = {}
+      todo = [self]
+      until todo.empty?
+        d = todo.pop
+        next if seen[d.ctx]
+        seen[d.ctx] = true
+        d.instances.each do |i|
+          p = i.parent
+          next unless p.is_a?(ComponentDefinition)
+          return true unless p.attribute_dictionary('SU_LiveComponent').nil?
+          todo << p if p.group?
+        end
+      end
+      false
+    end
     def procedural?; !attribute_dictionary('SU_PC').nil?; end
     def manifold?; Esq.icall('def.manifold', { 'ctx' => @ctx }, 'ComponentDefinition'); end
 
@@ -927,15 +945,23 @@ module Sketchup
     end
 
     # --- fichiers
-    def save_as(*args)
-      raise ArgumentError, 'wrong number of arguments (given 0, expected 1..2)' if args.empty?
-      Esq.icall('def.save', { 'ctx' => @ctx, 'path' => Esq.str_arg(args[0]), 'version' => args[1], 'relink' => true }, 'ComponentDefinition')
-    end
+    def save_as(*args); __save(args, true); end
+    def save_copy(*args); __save(args, false); end
 
-    def save_copy(*args)
-      raise ArgumentError, 'wrong number of arguments (given 0, expected 1..2)' if args.empty?
-      Esq.icall('def.save', { 'ctx' => @ctx, 'path' => Esq.str_arg(args[0]), 'version' => args[1] }, 'ComponentDefinition')
+    # un ou deux arguments (rb_scan_args « 11 »), le chemin par StringValue,
+    # la version (Sketchup::Model::VERSION_*) en entier non signé, ArgumentError « Invalid save
+    # version. » hors de VERSION_3..VERSION_2021.
+    def __save(args, relink)
+      raise ArgumentError, "wrong number of arguments (given #{args.size}, expected 1..2)" unless (1..2).cover?(args.size)
+      path = Esq.str_arg(args[0])
+      version = nil
+      if args.size > 1
+        version = Esq::Conv.num2uint(args[1])
+        raise ArgumentError, 'Invalid save version.' unless (3..17).cover?(version)
+      end
+      Esq.icall('def.save', { 'ctx' => @ctx, 'path' => path, 'version' => version, 'relink' => relink }, 'ComponentDefinition')
     end
+    private :__save
 
     # --- composants dynamiques / procéduraux
     def attach_procedure(name, params)
@@ -966,40 +992,37 @@ module Sketchup
     APPLIED = 'AppliedSchemaTypes'
 
     # Les noms passent par StringValue : nil, un nombre ou un
-    # point lèvent TypeError ; une image rend false avant de les lire.
+    # point lèvent TypeError ; une image rend false avant de les lire. Le type apporte son
+    # arbre de dictionnaires, lu dans le schéma (esq_core::classify_tree).
     def add_classification(schema, type)
       return false if image?
       schema = Esq.str_arg(schema)
       type = Esq.str_arg(type)
-      s = Esq::Classif.schema(schema) or return false
-      return false unless s.type?(type)
-      set_attribute(APPLIED, schema, type)
-      true
+      Esq.icall('classif.apply', { 'ctx' => @ctx, 'schema' => schema, 'type' => type }, 'ComponentDefinition') ? true : false
     end
 
     def remove_classification(*args)
       raise ArgumentError, 'Invalid number of arguments.' unless args.size == 1 || args.size == 2
       return false if image?
       schema = Esq.str_arg(args[0])
-      type = args.size > 1 ? Esq.str_arg(args[1]) : nil
-      applied = get_attribute(APPLIED, schema)
-      return false if applied.nil? || (type && type != applied)
-      delete_attribute(APPLIED, schema)
-      delete_attribute(schema)
-      true
+      type = args.size > 1 ? Esq.str_arg(args[1]) : ''
+      Esq.icall('classif.remove', { 'ctx' => @ctx, 'schema' => schema, 'type' => type }, 'ComponentDefinition') ? true : false
     end
 
+    # Le chemin : un Array (sinon TypeError), de noms passés par StringValue ;
+    # [schéma, type, attribut…], la valeur du dictionnaire nommé, nil sinon.
     def get_classification_value(path)
       p = Esq::Classif.path(path)
-      return nil unless get_attribute(APPLIED, p[0])
-      get_attribute(p[0], Esq::Classif.value_key(self, p))
+      r = Esq.icall('classif.get', { 'ctx' => @ctx, 'path' => p }, 'ComponentDefinition')
+      r['found'] ? Esq::Attr.dec(r['v']) : nil
     end
 
+    # false sans dictionnaire ni valeur ; un « choice » lève
+    # NotImplementedError, une valeur d'une autre sorte que `attribute_type` TypeError, un
+    # `attribute_type` absent ou inconnu RuntimeError.
     def set_classification_value(path, value)
       p = Esq::Classif.path(path)
-      return false unless get_attribute(APPLIED, p[0])
-      set_attribute(p[0], Esq::Classif.value_key(self, p), value)
-      true
+      Esq.icall('classif.set', { 'ctx' => @ctx, 'path' => p, 'v' => Esq::Attr.enc(value) }, 'ComponentDefinition') ? true : false
     end
 
     # --- Drawingelement : une définition n'est pas dessinée comme telle
@@ -1085,6 +1108,10 @@ module Sketchup
     def remove(defn)
       raise TypeError, 'wrong argument type (expected Sketchup::ComponentDefinition)' unless defn.is_a?(ComponentDefinition)
       raise TypeError, 'reference to deleted ComponentDefinition' unless defn.valid?
+      # not while one of its instances is being edited.
+      if Esq.open_definition?(defn)
+        raise ArgumentError, 'cannot remove definition with an instance in the active editing path'
+      end
       Esq.icall('defs.remove', { 'ctx' => defn.ctx }, 'DefinitionList')
       true
     end
@@ -1092,9 +1119,15 @@ module Sketchup
     def load(*args)
       opts = args.last.is_a?(Hash) ? args.pop : {}
       raise ArgumentError, "wrong number of arguments (given #{args.size}, expected 1)" unless args.size == 1
-      _ = opts
       path = Esq.str_arg(args[0])
-      ComponentDefinition.from_ctx(Esq.icall('defs.load', { 'path' => path }, 'DefinitionList'))
+      a = { 'path' => path, 'allow_newer' => opts[:allow_newer] ? true : false, 'own' => Sketchup.active_model.path.to_s }
+      d = ComponentDefinition.from_ctx(Esq.icall('defs.load', a, 'DefinitionList'))
+      # Le fichier d'où vient la définition est une de ses propriétés : SketchUp annonce aussi
+      # le chargement par onComponentPropertiesChanged, après l'ajout (« Load Component »).
+      if defined?(Esq::Events) && Esq::Events.watching?
+        Esq::Events.fire(:definitions, 'definitions', :onComponentPropertiesChanged, Esq::Events::SRC, d)
+      end
+      d
     end
 
     # URL → fichier temporaire → load. Avec un rappel (onPercentChange/onSuccess/onFailure),
@@ -1146,6 +1179,16 @@ module Sketchup
       raise IOError, 'File not found' unless File.file?(path)
       ext = File.extname(path).downcase.delete('.')
       raise ArgumentError, 'Skp files not supported. Use DefinitionList#load instead.' if ext == 'skp'
+      # The application's importers (DWG, DXF, DAE, 3DS, OBJ, STL…), with the options as
+      # Model#import reads them; without the application, the built-in mesh readers below.
+      opts, = Sketchup.active_model.send(:__format_options, args[1])
+      r = Esq.host('model.import_def', { 'path' => path, 'options' => opts }, nil)
+      if r.is_a?(Hash) && r['ctx']
+        d = ComponentDefinition.from_ctx(r['ctx'])
+        d.send(:put, path: path)
+        return d
+      end
+      raise IOError, 'Failed converting file to SKP' if r.is_a?(Hash) && r['err'] == 'fail'
       importer = Esq::MeshImport.for(ext) or raise ArgumentError, 'No importer found for file extension'
       d = add(File.basename(path, '.*'))
       begin
@@ -1242,16 +1285,13 @@ module Esq
         Esq.icall('attr.set', OWNER.merge('key' => s.name, 'v' => Esq::Attr.enc([s.namespace, s.path, *s.types.keys])))
       end
 
+      # Comme rb_unexpected_type : nil, true et false par leur nom, le reste par sa classe.
       def path(p)
-        raise TypeError, "wrong argument type #{p.class} (expected Array)" unless p.is_a?(Array)
-        p.map { |s| Esq.text_of(s) }
-      end
-
-      def value_key(defn, p)
-        rest = p[1..] || []
-        applied = defn.get_attribute(Sketchup::ComponentDefinition::APPLIED, p[0])
-        rest = rest[1..] if rest.first && rest.first == applied
-        rest.join('/')
+        unless p.is_a?(Array)
+          what = { nil => 'nil', true => 'true', false => 'false' }.fetch(p) { p.class.name }
+          raise TypeError, "wrong argument type #{what} (expected Array)"
+        end
+        p.map { |s| Esq.str_arg(s) }
       end
 
       # Un .skc est une archive zip : documentProperties.xml (titre), Schemas/*.xsd et *.xsd.filter.
@@ -1309,6 +1349,8 @@ end
 
 module Sketchup
   class ClassificationSchema
+    # Comparable, comme dans SketchUp : == et les comparaisons passent par <=> (les noms).
+    include Comparable
     def initialize(s); @s = s; end
     def inspect; to_s; end
     def name; @s.name.dup; end
@@ -1349,7 +1391,7 @@ module Sketchup
     end
 
     def unload_schema(name)
-      Esq::Classif.unload(Esq.text_of(name))
+      Esq::Classif.unload(Esq.str_arg(name))
       true
     end
   end

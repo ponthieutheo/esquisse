@@ -5,13 +5,21 @@
 
 # ---------------------------------------------------------------- bridge errors and helpers
 module Esq
+  # Native calls that only read; the others may change the model.
+  READ_OPS = /(\A|\.)(info|get|list|valid\??|names?|count|bounds|query|state|find|raytest|read|exists|is_\w+|has_\w+|take|ping|size)\z|\Apick\./
+
   class << self
     # Errors raised by the native side start with "ClassName: " when Ruby must raise that class.
     def call(op, args = {})
+      @writes = writes + 1 unless READ_OPS.match?(op)
       r = JSON.parse(__native(op, JSON.generate(args)))
       raise_native(r['err']) if r.key?('err')
       r['ok']
     end
+
+    # How many native calls could have changed the model so far (Entities#each looks again at
+    # what it yields once it moves).
+    def writes; @writes || 0; end
 
     def raise_native(msg)
       m = /\A(ArgumentError|TypeError|RuntimeError|RangeError|NotImplementedError|FrozenError|IndexError): (.*)\z/m.match(msg)
@@ -19,8 +27,10 @@ module Esq
       raise msg
     end
 
-    # [x, y, z] (inches) from a Point3d, Vector3d or Array.
+    # [x, y, z] (inches) from a Point3d, Vector3d or Array. A point is read as SketchUp reads
+    # one (Esq::G.pt): 2 or 3 numbers, a Point3d, a Vertex or an InputPoint.
     def xyz(p, what = 'Geom::Point3d')
+      return G.pt(p) if what == 'Geom::Point3d'
       a = p.respond_to?(:to_a) ? p.to_a : nil
       unless a && a.size == 3 && a.all? { |v| v.is_a?(Numeric) }
         raise ArgumentError, "Cannot convert argument to #{what}"
@@ -152,6 +162,36 @@ module Esq
       else
         material_name(Sketchup::Color.new(m))
       end
+    end
+
+    # What material= and back_material= take: not a deleted material,
+    # nor an image's or a tag's.
+    def material_setter_check!(m)
+      raise ArgumentError, 'Cannot assign deleted material' if m.is_a?(Sketchup::Material) && !m.valid?
+      assignable_material!(m)
+    end
+
+    # neither an image's nor a tag's material goes on an entity of the model.
+    def assignable_material!(m)
+      return unless m.is_a?(Sketchup::Material)
+      case m.owner_type
+      when Sketchup::Material::OWNER_IMAGE then raise ArgumentError, 'Cannot assign image material to model entities'
+      when Sketchup::Material::OWNER_LAYER then raise ArgumentError, 'Cannot assign layer material to model entities'
+      end
+    end
+
+    # an instance of `defn` is on the path being edited.
+    def open_definition?(defn)
+      (Sketchup.active_model.active_path || []).any? { |i| i.definition == defn }
+    end
+
+    # What `glued_to=` glues to: nil ungules; anything else must be a live
+    # entity (TypeError), the native side says which kind may take it.
+    def glue_target(t)
+      return nil if t.nil?
+      expect(t, Sketchup::Entity)
+      raise TypeError, 'reference to deleted Entity' unless t.valid?
+      t.handle
     end
 
     def expect(obj, klass)
@@ -323,6 +363,7 @@ module Sketchup
     end
 
     def material=(m)
+      Esq.material_setter_check!(m)
       write_material(Esq.material_name(m))
       m
     end
@@ -360,7 +401,11 @@ module Sketchup
     end
     private :set_prop_flag
 
+    # an instance whose definition is being edited stays.
     def erase!
+      if (is_a?(Group) || is_a?(ComponentInstance)) && valid? && Esq.open_definition?(definition)
+        raise ArgumentError, 'cannot remove an instance in the active editing path'
+      end
       Esq.call('ent.erase', 'hs' => [@handle])
       nil
     end
@@ -813,7 +858,14 @@ module Sketchup
     def initialize(handle); @handle = handle; end
     def info; Esq.call('ent.get', 'h' => @handle); end
     def edges; info['edges'].map { |h| Edge.new(h) }; end
-    def vertices; info['verts'].map { |h| Vertex.new(h) }; end
+    # Walked edge by edge from the first one: a closed curve ends on the vertex
+    # it started from, which comes twice.
+    def vertices
+      i = info
+      vs = i['verts']
+      vs += vs.first(1) if i['closed']
+      vs.map { |h| Vertex.new(h) }
+    end
     def count_edges; info['edges'].size; end
     def first_edge; Edge.new(info['edges'].first); end
     def last_edge; Edge.new(info['edges'].last); end
@@ -1393,13 +1445,7 @@ module Sketchup
 
     def glued_to=(target)
       check!
-      to = if target.nil? then nil
-           elsif target.is_a?(Face) || target.is_a?(Group) || target.is_a?(ComponentInstance) || target.is_a?(Image)
-             target.handle
-           else
-             raise ArgumentError, 'wrong type - expected Sketchup::Face, Sketchup::Group, SketchUp::Image or Sketchup::ComponentInstance'
-           end
-      Esq.call('inst.glue', 'h' => @handle, 'to' => to)
+      Esq.icall('inst.glue', { 'h' => @handle, 'to' => Esq.glue_target(target) }, 'Image')
       nil
     end
 
@@ -1483,7 +1529,8 @@ module Sketchup
       m = [u[0].x, u[0].y, u[0].z, 0, u[1].x, u[1].y, u[1].z, 0, u[2].x, u[2].y, u[2].z, 0, o[0], o[1], o[2], 1]
       if @page
         __scene
-        Esq.call('scene.set', 'uid' => @page, 'props' => { 'axes' => m })
+        # A scene's axes change outside any undo operation (no transaction is heard).
+        Esq::Events.unrecorded { Esq.call('scene.set', 'uid' => @page, 'props' => { 'axes' => m }) }
       else
         Esq.call('axes.set', 'm' => m)
       end
@@ -1496,7 +1543,13 @@ module Sketchup
   end
 
   # ---------------------------------------------------------------- EntitiesBuilder
+  # SketchUp: made only by Entities#build (`new` is undefined).
   class EntitiesBuilder
+    class << self
+      undef_method :new
+      def __make(entities); allocate.tap { |b| b.send(:initialize, entities) }; end
+    end
+
     def initialize(entities); @entities = entities; @valid = true; end
     def __invalidate; @valid = false; end
 
@@ -1511,29 +1564,57 @@ module Sketchup
     def clone; raise TypeError, 'Cannot duplicate or clone Sketchup::EntitiesBuilder.'; end
     alias dup clone
 
-    def add_face(*pts)
+    # the points, or one array of them, and `holes:` (an array of such arrays);
+    # the face keeps the orientation of its points.
+    def add_face(*args, holes: nil)
       check!
-      pts = pts.first if pts.size == 1 && pts.first.is_a?(Array) && !pts.first.first.is_a?(Numeric)
-      raise ArgumentError, 'Not enough points in loop require at least 3' if pts.size < 3
-      @entities.add_face(*pts)
+      outer = __loop(args.size == 1 ? args[0] : args)
+      unless holes.nil?
+        raise TypeError, "wrong argument type #{holes.class} (expected Array)" unless holes.is_a?(Array)
+        holes = holes.map { |h| __loop(h) }
+      end
+      Face.new(Esq.call('builder.face', 'ctx' => @entities.ctx, 'pts' => outer, 'holes' => holes || []))
     end
 
-    def add_edge(*pts)
+    # two points, or one array of two; ends that meet raise ArgumentError.
+    def add_edge(*args)
       check!
-      raise ArgumentError, 'Not enough points - at least 2 required' if pts.size < 2
-      @entities.add_edges(*pts).first
+      args = args[0] if __list?(args)
+      raise ArgumentError, "wrong number of arguments (given #{args.size}, expected 2)" unless args.size == 2
+      pts = args.map { |p| Esq.xyz(p) }
+      e = Esq.call('builder.edges', 'ctx' => @entities.ctx, 'pts' => pts).first
+      raise ArgumentError, 'Duplicate points' unless e
+      Edge.new(e)
     end
     alias add_line add_edge
 
-    def add_edges(*pts)
+    # an edge between each point and the next, nil where they meet.
+    def add_edges(*args)
       check!
-      @entities.add_edges(*pts)
+      args = args[0] if __list?(args)
+      raise ArgumentError, format('At least 2 points required, got %d', args.size) if args.size < 2
+      pts = args.map { |p| Esq.xyz(p) }
+      Esq.call('builder.edges', 'ctx' => @entities.ctx, 'pts' => pts).map { |h| h && Edge.new(h) }
     end
 
+    # the vertex at the point, or nil (none is made).
     def vertex_at(point)
       check!
-      Vertex.new(Esq.call('ents.vertex_at', 'ctx' => @entities.ctx, 'p' => Esq.xyz(point)))
+      h = Esq.call('builder.find', 'ctx' => @entities.ctx, 'p' => Esq.xyz(point))
+      h && Vertex.new(h)
     end
+
+    # an array of points (TypeError for anything else).
+    def __loop(pts)
+      raise TypeError, "wrong argument type #{pts.class} (expected Array)" unless pts.is_a?(Array)
+      pts.map { |p| Esq.xyz(p) }
+    end
+
+    # One argument that is an array of points rather than a point.
+    def __list?(args)
+      args.size == 1 && args[0].is_a?(Array) && !Esq::G.point_array?(args[0])
+    end
+    private :__loop, :__list?
   end
 
   # ---------------------------------------------------------------- Entities
@@ -1557,9 +1638,16 @@ module Sketchup
     def list; Esq.call('ent.list', 'ctx' => @ctx); end
     private :list
 
+    # SketchUp walks the collection with an iterator that steps over what is erased meanwhile:
+    # once the block may have changed the model, what is left to yield is
+    # looked at again.
     def each
       return to_enum(:each) unless block_given?
-      list.each { |h, t| yield Entity.wrap(h, t) }
+      w = Esq.writes
+      list.each do |h, t|
+        next if Esq.writes != w && !Esq.call('ent.valid', 'h' => h)
+        yield Entity.wrap(h, t)
+      end
       self
     end
 
@@ -1622,7 +1710,7 @@ module Sketchup
       y = nrm.cross(x)
       (0...n).map do |i|
         a = start_angle + 2 * Math::PI * i / n
-        Geom::Point3d.new(Esq.xyz(center)).offset(x * (radius * Math.cos(a)) + y * (radius * Math.sin(a)))
+        Geom::Point3d.new(Esq.xyz(center)).offset(Esq::G.combine(x, radius * Math.cos(a), y, radius * Math.sin(a)))
       end
     end
     private :circle_points
@@ -1655,10 +1743,13 @@ module Sketchup
       numsegs = [Integer(numsegs), 1].max
       pts = (0..numsegs).map do |i|
         a = start_angle + (end_angle - start_angle) * i / numsegs.to_f
-        c.offset(x * (radius * Math.cos(a)) + y * (radius * Math.sin(a)))
+        c.offset(Esq::G.combine(x, radius * Math.cos(a), y, radius * Math.sin(a)))
       end
+      # an arc from 0 to within 0.001 of 2π is kept as a circle (its end angle
+      # becomes its start, ArcCurve#circular?).
+      kept_end = start_angle.to_f.abs < 0.001 && (end_angle.to_f - 2 * Math::PI).abs < 0.001 ? start_angle.to_f : end_angle.to_f
       Esq.call('ent.add_curve', 'ctx' => @ctx, 'pts' => pts.map(&:to_a), 'kind' => 'arc', 'xaxis' => x.to_a,
-               'start' => start_angle.to_f, 'end' => end_angle.to_f).map { |h| Edge.new(h) }
+               'start' => start_angle.to_f, 'end' => kept_end).map { |h| Edge.new(h) }
     end
 
     def add_face(*args)
@@ -1717,17 +1808,23 @@ module Sketchup
     end
     private :mesh_args
 
+    # neither material may be an image's or a tag's.
     def add_faces_from_mesh(*args)
       check_frozen!
       raise ArgumentError, 'Too few arguments - 1 to 4 required' if args.empty?
       mesh, flags, mat, back = args
+      [mat, back].each { |m| Esq.assignable_material!(m) }
       Esq.call('ent.add_mesh', mesh_args(mesh, flags || 12, mat, back))
     end
 
+    # only into an empty collection (nil otherwise, before anything else is
+    # read); neither material may be an image's or a tag's.
     def fill_from_mesh(*args)
       check_frozen!
+      return nil unless length.zero?
       raise ArgumentError, 'Too few arguments - 1 to 5 required' if args.empty?
       mesh, _weld, flags, mat, back = args
+      [mat, back].each { |m| Esq.assignable_material!(m) }
       Esq.call('ent.add_mesh', mesh_args(mesh, flags || 12, mat, back))
       true
     end
@@ -1883,6 +1980,9 @@ module Sketchup
     def add_instance(defn, xform = nil)
       check_frozen!
       raise ArgumentError, 'Invalid component definition' unless defn.is_a?(ComponentDefinition)
+      # Une transformation, ou ce dont Geom::Transformation.new en fait une (un point : une
+      # translation, comme `add_instance(definition, ORIGIN)`).
+      xform = Geom::Transformation.new(xform) unless xform.nil? || xform.is_a?(Geom::Transformation)
       m = xform.respond_to?(:to_a) ? xform.to_a : nil
       if m && m.size == 16 && (m[0] * (m[5] * m[10] - m[6] * m[9]) - m[4] * (m[1] * m[10] - m[2] * m[9]) + m[8] * (m[1] * m[6] - m[2] * m[5])).abs < 1e-12
         raise ArgumentError, 'Unable to add instance: transformation matrix is not invertible'
@@ -1936,10 +2036,20 @@ module Sketchup
     # Entities#add_space is defined by the view zone (44_view_camera.rb) with the Space class.
 
     # ---- modification
+    # SketchUp: entities, arrays of entities or a selection; an
+    # instance whose definition is being edited cannot go.
     def erase_entities(*ents)
       check_frozen!
       raise ArgumentError, 'Too few arguments - at least 1 required' if ents.empty?
-      hs = ents.flatten.flat_map do |e|
+      list = ents.flat_map { |e| e.is_a?(Array) || e.is_a?(Selection) ? e.to_a : [e] }
+      list.each do |e|
+        Esq.expect(e, Entity)
+        raise TypeError, 'reference to deleted Entity' unless e.valid?
+      end
+      if list.any? { |e| (e.is_a?(Group) || e.is_a?(ComponentInstance)) && Esq.open_definition?(e.definition) }
+        raise ArgumentError, 'cannot remove an instance in the active editing path'
+      end
+      hs = list.flat_map do |e|
         case e
         when Curve then e.edges.map(&:handle)
         when Vertex then []
@@ -1967,13 +2077,21 @@ module Sketchup
       true
     end
 
+    # SketchUp: without two arrays nothing happens; each entity moves by what
+    # its value makes as a transformation (a vector or a point translates, a
+    # Transformation is taken as is), the vertices all at once.
     def transform_by_vectors(*args)
       check_frozen!
       raise ArgumentError, 'Too few arguments - at least 2 required' if args.size < 2
-      ents, vecs = args
-      ents = [ents].flatten
-      raise ArgumentError, 'second array must be at least as large as the first' if vecs.size < ents.size
-      Esq.call('ent.transform_by_vectors', 'ctx' => @ctx, 'hs' => ents.map(&:handle), 'vectors' => vecs.first(ents.size).map { |v| Esq.xyz(v, 'Geom::Vector3d') })
+      ents, vals = args
+      return self unless ents.is_a?(Array) && vals.is_a?(Array)
+      raise ArgumentError, 'second array must be at least as large as the first' if vals.size < ents.size
+      xforms = ents.each_with_index.map do |e, i|
+        Esq.expect(e, Entity)
+        raise TypeError, 'reference to deleted Entity' unless e.valid?
+        Esq::G.xform(vals[i]).to_a
+      end
+      Esq.call('ent.transform_by_vectors', 'ctx' => @ctx, 'hs' => ents.map(&:handle), 'xforms' => xforms)
       self
     end
 
@@ -2011,7 +2129,7 @@ module Sketchup
       raise LocalJumpError, 'no block given (yield)' unless block_given?
       raise RuntimeError, 'Cannot nest calls to entities.build' if Esq.building
       Esq.building = true
-      builder = EntitiesBuilder.new(self)
+      builder = EntitiesBuilder.__make(self)
       begin
         yield builder
       ensure

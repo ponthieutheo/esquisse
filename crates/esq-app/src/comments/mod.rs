@@ -192,7 +192,7 @@ impl CommentsState {
 
     /// The user's name, as their comments are signed.
     pub fn me(&mut self) -> String {
-        self.me.get_or_insert_with(user_name).clone()
+        self.me.get_or_insert_with(crate::settings::user_name).clone()
     }
 
     /// The comment threads the Filter lets through.
@@ -201,16 +201,6 @@ impl CommentsState {
         let unread = self.read_state().unread(c, &me);
         if unread { self.show_unread } else { self.show_read }
     }
-}
-
-/// `services::Config::user_name` (the name of the « Compte » window), else the Windows user
-/// name.
-pub fn user_name() -> String {
-    let n = crate::services::Config::load().user_name;
-    if !n.trim().is_empty() {
-        return n.trim().to_string();
-    }
-    std::env::var("USERNAME").ok().filter(|s| !s.trim().is_empty()).unwrap_or_else(|| "Anonyme".into())
 }
 
 // ---------------------------------------------------------------------------------------

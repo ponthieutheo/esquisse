@@ -262,7 +262,7 @@ fn view_draw_takes_a_texture_and_uvs_and_paints_them() {
     let mut m = Model::new();
     let code = "v = Sketchup.active_model.active_view
         rep = Sketchup::ImageRep.new
-        rep.set_data(2, 2, 32, 4, [0,0,255,255, 0,255,0,255, 255,0,0,255, 255,255,255,255].pack('C*'))
+        rep.set_data(2, 2, 32, 0, [0,0,255,255, 0,255,0,255, 255,0,0,255, 255,255,255,255].pack('C*'))
         t = $esq_tex = v.load_texture(rep)
         pts = [[0, 0, 0], [10, 0, 0], [10, 10, 0], [0, 10, 0]]
         v.draw(GL_QUADS, pts, texture: t, uvs: [[0, 0], [1, 0], [1, 1], [0, 1]])

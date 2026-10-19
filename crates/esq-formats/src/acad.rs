@@ -197,8 +197,7 @@ impl Builder<'_> {
         let k = self.k;
         let p = |q: DVec3| xform.transform_point3(q) / k;
         let show_hidden = self.opts.hidden;
-        let visible =
-            |hidden: bool, l: LayerIdx| show_hidden || (!hidden && model.layers.get(l).is_none_or(|x| x.visible));
+        let visible = |hidden: bool, l: LayerIdx| show_hidden || (!hidden && model.layer_shown(l));
         if self.o.faces {
             // Faces by (layer, colour) → polyface meshes.
             let mut groups: BTreeMap<(LayerIdx, Option<[u8; 3]>), MeshAcc> = BTreeMap::new();

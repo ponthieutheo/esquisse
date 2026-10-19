@@ -210,18 +210,48 @@ module Sketchup
       hs.empty? ? nil : hs.map { |h| Entity.wrap(h) }
     end
 
+    # nil ou un tableau vide ferment tout ; sinon un chemin d'instance
+    # (TypeError pour un autre objet ou un élément effacé, ArgumentError pour un
+    # chemin invalide) dont la feuille, si ce n'est pas une instance, est laissée de côté. Ni
+    # instance verrouillée, ni composant dynamique, ni autre
+    # instance verrouillée d'une définition ouverte. Le changement est une opération : hors de
+    # toute opération, onTransactionStart puis onTransactionCommit ; dans une opération, celle-ci
+    # est validée (si elle a changé quelque chose) et rouverte avant, validée et rouverte après.
     def active_path=(path)
-      hs = []
-      unless path.nil?
-        list = path.respond_to?(:to_a) ? path.to_a : [path]
-        list.each do |e|
-          raise ArgumentError, 'Cannot open instance path with live components' if false
-          raise TypeError, 'wrong argument type (expected Sketchup::Group or ComponentInstance)' unless e.respond_to?(:definition)
-          raise ArgumentError, 'Cannot open instance path with locked instances' if e.locked?
-          hs << e.handle
+      list = []
+      unless path.nil? || (path.is_a?(Array) && path.empty?)
+        unless path.is_a?(InstancePath) || path.is_a?(Array)
+          raise TypeError, 'Argument must be type of Sketchup::InstancePath or an Array representing an instance path'
+        end
+        gone = path.to_a.find { |e| e.is_a?(Sketchup::Entity) && !e.valid? }
+        raise TypeError, "reference to deleted #{gone.class.name.split('::').last}" if gone
+        ip = Esq.instance_path_arg(path)
+        list = ip.to_a.take_while { |e| e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) }
+        raise ArgumentError, 'Cannot open instance path with locked instances' if list.any?(&:locked?)
+        if list.any? { |e| e.definition.live_component? }
+          raise ArgumentError, 'Cannot open instance path with live components'
+        end
+        if list.any? { |e| e.definition.instances.any? { |i| i != e && i.locked? } }
+          raise ArgumentError, 'Cannot open instance path with locked sibling instances'
         end
       end
-      Esq.host('model.set_path', { 'path' => hs }, nil)
+      before = active_path || []
+      op = Esq.call('op.state')
+      if op && Esq::Events.op_changed?
+        commit_operation
+        start_operation(op['name'], true, nil, true)
+      end
+      Esq.emit(@observers, :onTransactionStart, self) unless op
+      Esq.host('model.set_path', { 'path' => list.map(&:handle) }, nil)
+      if op
+        @__path_in_op = true
+        commit_operation
+        start_operation(op['name'], op['transparent'], nil, true)
+      else
+        Esq.emit(@observers, :onTransactionCommit, self)
+      end
+      (before - list).reverse_each { |i| Esq::Events.fire_entity(i.handle, :onClose) }
+      (list - before).each { |i| Esq::Events.fire_entity(i.handle, :onOpen) }
       Esq.emit(@observers, :onActivePathChanged, self)
       path
     end
@@ -265,9 +295,13 @@ module Sketchup
       true
     end
 
+    # Une opération qui n'a rien changé s'annonce vide (onTransactionEmpty) ; le changement de
+    # chemin actif compte (SketchUp valide l'opération qui le contient).
     def commit_operation
+      changed = @__path_in_op || !defined?(Esq::Events) || Esq::Events.op_changed?
+      @__path_in_op = false
       Esq.call('op.commit')
-      Esq.emit(@observers, :onTransactionCommit, self)
+      Esq.emit(@observers, changed ? :onTransactionCommit : :onTransactionEmpty, self)
       true
     end
 
@@ -299,9 +333,12 @@ module Sketchup
 
     def save_thumbnail(path); Esq.host('model.thumbnail', { 'image' => path.to_s }, false) ? true : false; end
 
+    # un argument au plus (rb_error_arity).
     def close(*args)
+      raise ArgumentError, "wrong number of arguments (given #{args.size}, expected 0..1)" if args.size > 1
       raise RuntimeError, 'Only the active model can be closed' unless equal?(Sketchup.active_model)
       Esq.host('model.close', { 'discard' => args[0] ? true : false }, nil)
+      Esq::Events.entities_replaced if defined?(Esq::Events)
       nil
     end
     def close_active; close; end
@@ -392,30 +429,110 @@ module Sketchup
     end
 
     # ---- recherche d'entités
-    def find_entity_by_id(*ids)
-      raise ArgumentError, 'Must have at least one argument.' if ids.empty?
-      ids = ids.flatten
-      found = ids.map { |id| all_entities.find { |e| e.entityID == id } }
-      ids.size == 1 && !ids[0].is_a?(Array) ? found[0] : found
+    # Les arguments de find_entity_by_id et find_entity_by_persistent_id 
+    # au moins un ; un seul tableau donne la liste à chercher (non vide) et un
+    # tableau en réponse ; une seule valeur, la réponse seule.
+    def __id_list(args)
+      raise ArgumentError, 'Must have at least one argument.' if args.empty?
+      return [args, false] unless args.size == 1
+      return [[args[0]], true] unless args[0].is_a?(Array)
+      raise ArgumentError, 'Must have at least one argument.' if args[0].empty?
+      [args[0], false]
+    end
+    private :__id_list
+
+    # Tout ce qui a un identifiant : les entités de chaque collection (sommets et courbes des
+    # arêtes compris), les définitions, les étiquettes et leurs dossiers, les matières et leurs
+    # textures, les scènes, les styles.
+    def __identified
+      out = []
+      seen = {}
+      add = ->(e) { out << e if e && !seen.key?(e.handle) && (seen[e.handle] = true) }
+      ([entities] + definitions.map(&:entities)).each do |es|
+        es.each do |e|
+          add.(e)
+          next unless e.is_a?(Sketchup::Edge)
+          add.(e.start)
+          add.(e.end)
+          add.(e.curve)
+        end
+      end
+      out.concat(definitions.to_a)
+      out.concat(layers.to_a)
+      layers.__all_folders.each { |f| out << f } if layers.respond_to?(:__all_folders)
+      materials.each do |m|
+        out << m
+        t = m.texture
+        out << t if t
+      end
+      out.concat(pages.to_a) if respond_to?(:pages)
+      out.concat(styles.to_a) if respond_to?(:styles)
+      out
+    end
+    private :__identified
+
+    # des entityID (Integer) ou des GUID (String), pas les deux ; le genre de
+    # la première valeur décide (TypeError sinon, et pour une valeur d'un autre genre).
+    def find_entity_by_id(*args)
+      ids, single = __id_list(args)
+      found =
+        if ids[0].is_a?(Integer)
+          ids = ids.map { |i| Esq::Conv.num2long(i) }
+          table = {}
+          __identified.each { |e| table[e.entityID] ||= e }
+          ids.map { |i| table[i] }
+        elsif ids[0].is_a?(String)
+          ids = ids.map { |g| Esq.str_arg(g) }
+          table = {}
+          ([entities] + definitions.map(&:entities)).each do |es|
+            es.each { |e| table[e.guid] ||= e if e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) }
+          end
+          definitions.each { |d| table[d.guid] ||= d }
+          ids.map { |g| g.empty? ? nil : table[g] }
+        else
+          raise TypeError, 'Must be either entityID Integer or GUID String'
+        end
+      single ? found[0] : found
     end
     alias_method :__find_by_id, :find_entity_by_id
 
-    def find_entity_by_persistent_id(*ids)
-      raise ArgumentError, 'Must have at least one argument.' if ids.empty?
-      ids = ids.flatten
-      found = ids.map { |id| all_entities.find { |e| e.persistent_id == id } }
-      ids.size == 1 ? found[0] : found
+    # (rb_scan_args « *: ») puis : sans mots-clés tout est cherché,
+    # sinon seulement les genres demandés (entities: ce que contiennent le modèle et les
+    # définitions, layers:, layer_folders:, materials:, pages:, styles:, definitions:).
+    def find_entity_by_persistent_id(*args)
+      scope = args.size > 1 && args.last.is_a?(Hash) ? args.pop : nil
+      ids, single = __id_list(args)
+      ids = ids.map { |i| Esq::Conv.num2long(i) }
+      want = ->(k) { scope.nil? || scope[k] }
+      pool = []
+      if want.(:entities)
+        ([entities] + definitions.map(&:entities)).each { |es| pool.concat(es.to_a) }
+      end
+      pool.concat(layers.to_a) if want.(:layers)
+      pool.concat(layers.__all_folders) if want.(:layer_folders) && layers.respond_to?(:__all_folders)
+      pool.concat(materials.to_a) if want.(:materials)
+      pool.concat(pages.to_a) if want.(:pages) && respond_to?(:pages)
+      pool.concat(styles.to_a) if want.(:styles) && respond_to?(:styles)
+      pool.concat(definitions.to_a) if want.(:definitions)
+      table = {}
+      pool.each { |e| table[e.persistent_id] ||= e }
+      found = ids.map { |i| table[i] }
+      single ? found[0] : found
     end
 
+    # une chaîne (StringValue) de persistent_id séparés par des points, chaque
+    # élément pris dans la collection du précédent.
     def instance_path_from_pid_path(pid_path)
-      raise ArgumentError, 'invalid pid path' unless pid_path.is_a?(String) && pid_path =~ /\A\d+(\/\d+)*\z/
+      pid_path = Esq.str_arg(pid_path)
+      raise ArgumentError, 'invalid pid path' unless pid_path =~ /\A\d+(\.\d+)*\z/
       ents = entities
       chain = []
-      pid_path.split('/').each do |pid|
-        e = ents.find { |x| x.respond_to?(:persistent_id) && x.persistent_id == pid.to_i }
+      pid_path.split('.').each do |pid|
+        raise ArgumentError, 'unable to locate full pid path' if ents.nil?
+        e = ents.find { |x| x.persistent_id == pid.to_i }
         raise ArgumentError, 'unable to locate full pid path' unless e
         chain << e
-        ents = e.definition.entities if e.respond_to?(:definition)
+        ents = e.is_a?(Sketchup::Group) || e.is_a?(Sketchup::ComponentInstance) ? e.definition.entities : nil
       end
       raise ArgumentError, 'unable to find an instance path' if chain.empty?
       InstancePath.new(chain)

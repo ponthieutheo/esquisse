@@ -287,6 +287,18 @@ pub fn user_dir() -> Option<PathBuf> {
     Some(d)
 }
 
+/// The user's name, which signs their comments and claims credit (Model Info › Credits): the
+/// Windows user name. SketchUp takes both from the Trimble account (`displayName`) and has no
+/// name of its own when signed out; Esquisse has no account, the Windows session stands for it.
+pub fn user_name() -> String {
+    ["USERNAME", "USER"]
+        .iter()
+        .filter_map(|v| std::env::var(v).ok())
+        .map(|n| n.trim().to_string())
+        .find(|n| !n.is_empty())
+        .unwrap_or_else(|| "Utilisateur".into())
+}
+
 fn file() -> Option<PathBuf> {
     Some(user_dir()?.join("preferences.json"))
 }

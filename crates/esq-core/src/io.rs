@@ -45,7 +45,7 @@ pub fn world_triangles(model: &Model) -> Vec<([DVec3; 3], Option<MaterialId>)> {
     let mut out = Vec::new();
     visit(model, |p| {
         for (f, face) in p.ents.faces.iter() {
-            if face.hidden || !model.layers.get(face.layer).is_none_or(|l| l.visible) {
+            if face.hidden || !model.layer_shown(face.layer) {
                 continue;
             }
             let mat = face.front.or(p.inherited);

@@ -321,7 +321,15 @@ fn testup_api_suite() {
         EXCLUDED.iter().map(|(k, v)| (k.to_string(), serde_json::Value::from(*v))).collect();
 
     let trace = std::env::var_os("ESQ_REEL_TRACE").is_some();
-    let mut app = EsquisseApp::bare(None, None);
+    // L'application dessine, comme SketchUp : View#write_image et les vignettes s'écrivent.
+    let mut app = match crate::tests::gpu::render_state() {
+        Some(rs) => {
+            let mut a = EsquisseApp::bare(Some(crate::render::Viewport3d::new(&rs)), None);
+            a.gpu = Some(rs);
+            a
+        }
+        None => EsquisseApp::bare(None, None),
+    };
     if trace {
         eprintln!("suite recopiée dans {}", root.display());
     }
@@ -399,4 +407,70 @@ fn testup_api_suite() {
         std::fs::write(out, rows.join("\n") + "\n").unwrap();
     }
     let _ = std::fs::remove_dir_all(&root);
+}
+
+/// `Model#active_path=` comme, dans l'application (le chemin est celui du
+/// document) : la feuille d'un chemin qui n'est pas une instance est laissée de côté ; instance
+/// effacée : TypeError ; chemin invalide, instance verrouillée (ou une autre instance de sa
+/// définition) : ArgumentError ; hors opération le changement en est une (onTransactionStart,
+/// onTransactionCommit), dans une opération celle-ci est validée et rouverte autour ; une
+/// opération qui n'a rien changé s'annonce vide ; les instances ouvertes et fermées entendent
+/// onOpen et onClose (TestUp `TC_Sketchup_Model#test_active_path_Set_*`).
+#[test]
+fn active_paths_open_like_sketchup() {
+    let Some(interp) = super::ruby::interp() else { return };
+    let _g = super::ruby::HOST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let mut app = EsquisseApp::bare(None, None);
+    let o = script(
+        &mut app,
+        interp,
+        "def cls; yield; nil; rescue Exception => e; e.class; end
+         def err; yield; nil; rescue Exception => e; \"#{e.class}: #{e.message}\"; end
+         m = Sketchup.active_model
+         log = []
+         obs = Class.new(Sketchup::ModelObserver) {
+           define_method(:initialize) { |l| @l = l }
+           %w[onTransactionStart onTransactionCommit onTransactionEmpty onActivePathChanged].each { |n| define_method(n) { |_m| @l << n } }
+         }.new(log)
+         g1 = m.entities.add_group; g2 = g1.entities.add_group
+         f = g2.entities.add_face([0, 0, 0], [9, 0, 0], [9, 9, 0])
+         io = []
+         iobs = Class.new(Sketchup::InstanceObserver) {
+           define_method(:initialize) { |l| @l = l }
+           define_method(:onOpen) { |i| @l << [:open, i] }
+           define_method(:onClose) { |i| @l << [:close, i] }
+         }.new(io)
+         g2.add_observer(iobs)
+         m.add_observer(obs)
+         m.active_path = Sketchup::InstancePath.new([g1, g2, f])
+         r = [m.active_path == [g1, g2], log.dup, io.map { |e, i| [e, i == g2] }]
+         log.clear; io.clear
+         m.start_operation('Ouvrir', true)
+         m.active_path = [g1]
+         m.commit_operation
+         r += [log.dup, io.map { |e, i| [e, i == g2] }]
+         log.clear
+         m.start_operation('Cube', true)
+         m.entities.add_cpoint([1, 2, 3])
+         m.active_path = nil
+         m.commit_operation
+         r << log.dup << m.active_path
+         m.remove_observer(obs)
+         g2.remove_observer(iobs)
+         g3 = m.entities.add_group; g3.entities.add_cpoint(ORIGIN); g3.locked = true
+         r += [cls { m.active_path = 123 }, cls { m.active_path = [g1] * 3 }, cls { m.active_path = [g3] }]
+         s = m.entities.add_instance(g2.definition, IDENTITY); s.locked = true
+         r << err { m.active_path = [g1, g2] }
+         g4 = m.entities.add_group; g4.entities.add_cpoint(ORIGIN); p4 = Sketchup::InstancePath.new([g4]); g4.erase!
+         r + [cls { m.active_path = p4 }, m.active_path]",
+    );
+    assert!(o.ok, "{}", o.error);
+    assert_eq!(
+        o.result,
+        "[true, [\"onTransactionStart\", \"onTransactionCommit\", \"onActivePathChanged\"], [[:open, true]], \
+         [\"onTransactionStart\", \"onTransactionCommit\", \"onTransactionStart\", \"onActivePathChanged\", \"onTransactionEmpty\"], \
+         [[:close, true]], [\"onTransactionStart\", \"onTransactionCommit\", \"onTransactionStart\", \"onTransactionCommit\", \
+         \"onTransactionStart\", \"onActivePathChanged\", \"onTransactionEmpty\"], nil, TypeError, ArgumentError, ArgumentError, \
+         \"ArgumentError: Cannot open instance path with locked sibling instances\", TypeError, nil]"
+    );
 }

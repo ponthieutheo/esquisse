@@ -1540,6 +1540,22 @@ impl EsquisseApp {
         kind: crate::export2d::Kind,
         o: &crate::export2d::RasterOptions,
     ) -> anyhow::Result<()> {
+        self.with_script_scene(model, ctx, sel, |app, rs| {
+            let ppp = app.ppp as f64;
+            let view = [(app.cam.size.x * ppp).round() as u32, (app.cam.size.y * ppp).round() as u32];
+            app.export_raster(rs, path.to_path_buf(), kind, o, view, ppp).map(|_| ())
+        })
+    }
+
+    /// Runs `f` with a script's `model` (lent to the document meanwhile, edit path `ctx`,
+    /// selection `sel`) uploaded to the 3D view, for a picture drawn at once.
+    pub fn with_script_scene<R>(
+        &mut self,
+        model: &mut Model,
+        ctx: &[esq_core::model::InstanceId],
+        sel: &[EntityRef],
+        f: impl FnOnce(&mut Self, &eframe::egui_wgpu::RenderState) -> anyhow::Result<R>,
+    ) -> anyhow::Result<R> {
         let Some(rs) = self.gpu.clone() else { anyhow::bail!("pas de rendu graphique") };
         std::mem::swap(&mut self.doc.model, model);
         let r = (|| {
@@ -1555,9 +1571,7 @@ impl EsquisseApp {
             let mesh = scene::build(m, &opts);
             let Some(v) = self.view.as_mut() else { anyhow::bail!("pas de vue 3D") };
             v.upload(&rs, &mesh);
-            let ppp = self.ppp as f64;
-            let view = [(self.cam.size.x * ppp).round() as u32, (self.cam.size.y * ppp).round() as u32];
-            self.export_raster(&rs, path.to_path_buf(), kind, o, view, ppp).map(|_| ())
+            f(self, &rs)
         })();
         std::mem::swap(&mut self.doc.model, model);
         // The view shows the document again from the next frame.

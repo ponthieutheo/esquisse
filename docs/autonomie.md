@@ -34,7 +34,6 @@ sont construits par le code (`prefs::builtin_templates`). Le contenu livré les 
 | Edge WebView2 | `wry` (boîtes `UI::HtmlDialog`) | composant de Windows 11 ; données dans `%APPDATA%\Esquisse\WebView2` (un dossier temporaire du processus dans les tests) |
 | ffmpeg | `export_anim.rs` : `ESQUISSE_FFMPEG`, le PATH, `%LOCALAPPDATA%\Microsoft\WinGet\Packages\Gyan.FFmpeg*` | export vidéo seulement (programme externe admis par le brief) ; non livré |
 | Programmes de Windows | `powershell` (impression), `cmd /C start`, `explorer`, `rundll32`, `curl`, `tar` (Ruby : `Sketchup::Http`, `.rbz`) | fournis par Windows 10/11 |
-| Gestionnaire d'identification | `services::secret` (crate `keyring`) | mots de passe des services |
 | Données de l'utilisateur | `%APPDATA%\Esquisse` : préférences, récents, modèles types, styles, environnements, `Plugins`, `sandbox.ini`… | les fichiers de l'utilisateur, créés par Esquisse |
 | Fichiers de support Ruby | `Sketchup.find_support_file` : `ESQ_RESOURCES`, `%APPDATA%\Esquisse`, le contenu livré, le dossier de l'exe | comme l'arborescence d'installation de SketchUp |
 
@@ -165,7 +164,7 @@ Ce que cette simulation ne prouve pas :
 - SketchUp reste installé ici : un code qui le trouverait par une autre voie (registre,
   dossiers connus de Windows par `SHGetKnownFolderPath`, chemin absolu construit autrement)
   ne serait pas pris en défaut. Même chose pour ce que des bibliothèques lisent par les API
-  de Windows plutôt que par les variables (WebView2, boîtes de fichiers, `keyring`).
+  de Windows plutôt que par les variables (WebView2, boîtes de fichiers).
 - Les composants de Windows présents ici le seraient sur un autre PC Windows 10/11, mais pas
   forcément : Edge WebView2 (boîtes `UI::HtmlDialog`), pilotes graphiques (wgpu/DX12),
   polices Segoe UI. Le redistribuable Visual C++ n'est plus nécessaire (CRT statique).

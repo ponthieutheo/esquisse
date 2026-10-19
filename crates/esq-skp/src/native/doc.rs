@@ -334,6 +334,8 @@ pub struct Material {
     pub id: Id,
     pub name: String,
     pub color: [u8; 3],
+    /// The alpha byte of the stored colour when it is not 255.
+    pub color_alpha: Option<u8>,
     /// 0 colored, 1 textured, 2 colorized.
     pub kind: i32,
     pub opacity: f64,

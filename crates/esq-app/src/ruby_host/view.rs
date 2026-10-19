@@ -48,6 +48,11 @@ pub struct ImageJob {
     pub path: std::path::PathBuf,
     pub size: [u32; 2],
     pub transparent: bool,
+    pub antialias: bool,
+    /// `:compression` (0..1): the JPEG quality.
+    pub compression: f64,
+    /// `:scale_factor`: the width of the lines.
+    pub scale: f64,
 }
 
 /// État de la vue que seuls les scripts Ruby alimentent.
@@ -69,13 +74,14 @@ pub struct ViewTexture {
 }
 
 impl ViewTexture {
-    /// The pixels of an `ImageRep` (`w`, `h`, `bpp`, `pad`, `data` in base64; BGR(A) rows).
+    /// The pixels of an `ImageRep` (`w`, `h`, `bpp`, `pad`, `data` in base64; BGR(A) rows from
+    /// the top, each followed by `pad` bytes, as `ImageRep#row_padding` counts them).
     fn from_rep(a: &J) -> Option<ViewTexture> {
         let (w, h) = (a["w"].as_u64()? as usize, a["h"].as_u64()? as usize);
         let px = (a["bpp"].as_u64().unwrap_or(32) / 8) as usize;
-        let pad = a["pad"].as_u64().unwrap_or(4).max(1) as usize;
+        let pad = a["pad"].as_u64().unwrap_or(0) as usize;
         let data = esq_core::photo::base64_decode(a["data"].as_str()?)?;
-        let row = (w * px).div_ceil(pad) * pad;
+        let row = w * px + pad;
         if w == 0 || h == 0 || px == 0 || data.len() < row * h {
             return None;
         }
@@ -356,21 +362,13 @@ impl ViewCx<'_> {
                 self.vs.tooltip = a["text"].as_str().map(str::to_string);
                 J::Null
             }
-            "write_image" => {
-                let path = std::path::PathBuf::from(a["path"].as_str().ok_or("chemin attendu")?);
-                let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-                if !matches!(ext.as_str(), "png" | "jpg" | "jpeg") {
-                    return Ok(json!(false));
+            "write_image" => match image_job(a)? {
+                Some(job) => {
+                    self.vs.images.push(job);
+                    json!(true)
                 }
-                let w = a["w"].as_u64().unwrap_or(1) as u32;
-                let h = a["h"].as_u64().unwrap_or(1) as u32;
-                self.vs.images.push(ImageJob {
-                    path,
-                    size: [w, h],
-                    transparent: a["transparent"].as_bool().unwrap_or(false),
-                });
-                json!(true)
-            }
+                None => json!(false),
+            },
             // Pas de mesure de temps de rafraîchissement ici : Ruby retombe sur ses valeurs par défaut.
             "refresh_times" | "graphics_engine" => J::Null,
             "invalidate" => J::Null,
@@ -507,9 +505,21 @@ impl ViewCx<'_> {
                 v.and_then(|v| v.get(1)).and_then(J::as_f64).unwrap_or(0.0),
             )
         };
+        // The entities of the script's context (`ctx`: the instances of its edit path), an
+        // instance as a whole.
+        let ctx: Vec<esq_core::model::InstanceId> = a["ctx"]
+            .as_array()
+            .map(|l| {
+                l.iter()
+                    .filter_map(J::as_str)
+                    .filter_map(|h| h.rsplit(':').next()?.parse::<u64>().ok())
+                    .map(|id| slotmap::KeyData::from_ffi(id).into())
+                    .collect()
+            })
+            .unwrap_or_default();
         let pick = PickCache::build(model, self.style);
-        let hits = pick.hits_in_rect(&*self.cam, g("min"), g("max"), a["crossing"].as_bool().unwrap_or(false));
-        J::Array(hits.into_iter().filter_map(hit_json).collect())
+        let items = pick.items_in_rect(&*self.cam, g("min"), g("max"), a["crossing"].as_bool().unwrap_or(false), &ctx);
+        J::Array(items.into_iter().filter_map(|item| hit_json(&Hit { path: ctx.clone(), item })).collect())
     }
 
     // ---------------------------------------------------------------------- options de rendu
@@ -678,22 +688,70 @@ pub fn paint(vs: &ViewState, painter: &egui::Painter, origin: egui::Pos2, cam: &
     }
 }
 
+/// `View#write_image`: SketchUp writes the picture before it returns (TestUp
+/// test_write_image_*). With a GPU it is drawn at once from the script's `model` (edit path
+/// `ctx`); without one it waits for the next frame that can draw.
+pub fn write_image(
+    app: &mut EsquisseApp,
+    ctx: &[esq_core::model::InstanceId],
+    model: &mut Model,
+    sel: &mut Vec<EntityRef>,
+    op: &str,
+    args: &J,
+) -> Result<J, String> {
+    if app.gpu.is_none() {
+        return call(app, model, sel, op, args);
+    }
+    let Some(job) = image_job(args)? else { return Ok(json!(false)) };
+    let r = app.with_script_scene(model, ctx, sel, |app, rs| app.write_ruby_image(rs, &job));
+    Ok(json!(r.is_ok()))
+}
+
+/// The picture `View#write_image` asks for; `None` for a format it does not write.
+fn image_job(a: &J) -> Result<Option<ImageJob>, String> {
+    let path = std::path::PathBuf::from(a["path"].as_str().ok_or("chemin attendu")?);
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    if !matches!(ext.as_str(), "png" | "jpg" | "jpeg") {
+        return Ok(None);
+    }
+    let w = a["w"].as_u64().unwrap_or(1) as u32;
+    let h = a["h"].as_u64().unwrap_or(1) as u32;
+    Ok(Some(ImageJob {
+        path,
+        size: [w, h],
+        transparent: a["transparent"].as_bool().unwrap_or(false),
+        antialias: a["antialias"].as_bool().unwrap_or(false),
+        compression: a["compression"].as_f64().unwrap_or(1.0),
+        scale: a["scale"].as_f64().unwrap_or(1.0),
+    }))
+}
+
 impl EsquisseApp {
     /// Écrit les images demandées par `View#write_image` (rendu hors écran de l'état actuel).
     pub fn step_ruby_images(&mut self, rs: &eframe::egui_wgpu::RenderState) {
         let jobs = std::mem::take(&mut self.ui_state.extra.view.images);
         for job in jobs {
-            let mut cam = self.cam.clone();
-            cam.size = DVec2::new(job.size[0] as f64, job.size[1] as f64);
-            let Some((w, h, px)) = self.render_rgba(rs, &cam, job.size, 1.0) else { continue };
-            let ext = job.path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-            let _ = if ext == "png" {
-                crate::png::write_rgba(&job.path, w, h, &px).map_err(|e| e.to_string())
-            } else {
-                let rgb: Vec<u8> = px.as_chunks::<4>().0.iter().flat_map(|p| [p[0], p[1], p[2]]).collect();
-                image::save_buffer(&job.path, &rgb, w, h, image::ColorType::Rgb8).map_err(|e| e.to_string())
-            };
-            let _ = job.transparent;
+            let _ = self.write_ruby_image(rs, &job);
         }
+    }
+
+    /// One picture of `View#write_image`: what the view shows, at the asked size, rendered as
+    /// File › Export › 2D Graphic renders (anti-aliasing, transparent background for a PNG,
+    /// JPEG quality, line scale).
+    fn write_ruby_image(&mut self, rs: &eframe::egui_wgpu::RenderState, job: &ImageJob) -> anyhow::Result<()> {
+        use crate::export2d::{Kind, RasterJob, RasterOptions};
+        let ext = job.path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+        let kind = if ext == "png" { Kind::Png } else { Kind::Jpeg };
+        let o = RasterOptions {
+            use_view_size: false,
+            width: job.size[0],
+            height: job.size[1],
+            line_scale: job.scale,
+            antialias: job.antialias,
+            transparent: job.transparent,
+            jpeg_quality: (job.compression * 100.0).round().clamp(1.0, 100.0) as u8,
+        };
+        self.render_raster(rs, RasterJob::new(job.path.clone(), kind, &o, job.size, job.scale))?;
+        Ok(())
     }
 }

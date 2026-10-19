@@ -1121,7 +1121,8 @@ module Sketchup
       e.vertices.find { |v| v.position == pos }
     end
 
-    def instance_path; @d && Esq.instance_path_of(@d['path']); end
+    # The pick path ends with the element the point lies on (InputPoint+0x48).
+    def instance_path; @d && Esq.instance_path_of(@d['path'] + [@d['leaf']].compact); end
 
     def pick(*args)
       raise ArgumentError, 'Too few arguments: view, x and y required' if args.size < 3
@@ -1306,27 +1307,37 @@ module Sketchup
         raise ArgumentError, 'Invalid pick option. Use Sketchup::PickHelper::PICK_INSIDE or Sketchup::PickHelper::PICK_CROSSING.'
       end
       a, b = p1.to_a, p2.to_a
+      # Among the entities being edited, an instance as a whole.
+      ctx = (Sketchup.active_model.active_path || []).map(&:handle)
       @hits = Esq.call('pick.rect', 'min' => [[a[0], b[0]].min.to_f, [a[1], b[1]].min.to_f],
-                                    'max' => [[a[0], b[0]].max.to_f, [a[1], b[1]].max.to_f], 'crossing' => f == PICK_CROSSING) rescue []
+                                    'max' => [[a[0], b[0]].max.to_f, [a[1], b[1]].max.to_f], 'crossing' => f == PICK_CROSSING,
+                                    'ctx' => ctx) rescue []
       @hits = [] unless @hits.is_a?(Array)
       @hits.size
     end
 
+    # a box, the pick option, maybe a transformation (rb_scan_args « 21 »); the
+    # entities being edited, an instance as a whole.
     def boundingbox_pick(*args)
-      raise ArgumentError, 'Wrong number of arguments: 1 to 3' if args.empty?
+      raise ArgumentError, "wrong number of arguments (given #{args.size}, expected 2..3)" unless (2..3).cover?(args.size)
       bb = args[0]
-      f = args.size > 1 ? Esq.int!(args[1]) : PICK_INSIDE
+      raise TypeError, 'Wrong type - expected BoundingBox' unless bb.is_a?(Geom::BoundingBox)
+      f = Esq.int!(args[1])
       unless f == PICK_INSIDE || f == PICK_CROSSING
         raise ArgumentError, 'Invalid pick option. Use Sketchup::PickHelper::PICK_INSIDE or Sketchup::PickHelper::PICK_CROSSING.'
       end
-      t = args[2]
+      t = args[2].nil? ? nil : Esq::G.xform(args[2])
       mn, mx = bb.min.to_a, bb.max.to_a
       if t
         corners = [mn[0], mx[0]].product([mn[1], mx[1]], [mn[2], mx[2]]).map { |c| (t * Geom::Point3d.new(*c)).to_a }
         mn = corners.transpose.map(&:min)
         mx = corners.transpose.map(&:max)
       end
-      @hits = Esq.call('pick.bbox', 'min' => mn, 'max' => mx, 'crossing' => f == PICK_CROSSING)
+      m = Sketchup.active_model
+      path = m.active_path || []
+      @hits = Esq.call('pick.bbox', 'min' => mn, 'max' => mx, 'crossing' => f == PICK_CROSSING,
+                                    'ctx' => m.active_entities.ctx, 'xform' => m.edit_transform.to_a,
+                                    'path' => path.map(&:handle))
       @hits.size
     end
   end
@@ -1530,7 +1541,7 @@ module Sketchup
 
     def valid?; Esq.scenes.any? { |s| s['uid'] == @uid }; end
     def deleted?; !valid?; end
-    def entityID; @uid; end
+    def entityID; Esq.object_pid(:page, @uid); end
     alias persistent_id entityID
     def ==(o); o.is_a?(Page) && o.uid == @uid; end
     alias eql? ==
@@ -1750,20 +1761,24 @@ module Sketchup
       self
     end
 
+    # The scene's own list of hidden elements, the one #update fills and selecting the scene
+    # restores (SketchUp): top-level elements and instances only.
     def set_drawingelement_visibility(entity, visible)
       raise TypeError, 'Not a Sketchup::Drawingelement.' unless entity.is_a?(Drawingelement)
-      vis = (__props['vis'] || {}).dup
-      vis[entity.handle] = visible ? true : false
-      __prop_set('vis', vis)
-      self
+      return false unless entity.parent.is_a?(Model) || entity.is_a?(Instance) || entity.is_a?(Image)
+      list = (__props['hidden_ents'] || []).dup
+      if visible
+        list.delete(entity.handle)
+      else
+        list << entity.handle unless list.include?(entity.handle)
+      end
+      __prop_set('hidden_ents', list)
+      true
     end
 
     def get_drawingelement_visibility(entity)
       raise TypeError, 'Not a Sketchup::Drawingelement.' unless entity.is_a?(Drawingelement)
-      vis = __props['vis'] || {}
-      return vis[entity.handle] if vis.key?(entity.handle)
-      return !(__props['hidden_ents'] || []).include?(entity.handle) if (__flags & PAGE_USE_HIDDEN) != 0
-      true
+      !(__props['hidden_ents'] || []).include?(entity.handle)
     end
 
     def inspect; "#<Sketchup::Page:0x#{(object_id * 8).to_s(16).rjust(16, '0')}>"; end
@@ -2368,7 +2383,7 @@ module Sketchup
     def ==(o); o.is_a?(Style) && o.__id == @id; end
     alias eql? ==
     def hash; @id.hash; end
-    def entityID; @id; end
+    def entityID; Esq.object_pid(:style, @id); end
 
     def name; __doc['name'].dup; end
 
@@ -2559,7 +2574,7 @@ module Sketchup
     def ==(o); o.is_a?(Environment) && o.__id == @id; end
     alias eql? ==
     def hash; @id.hash; end
-    def entityID; @id; end
+    def entityID; Esq.object_pid(:environment, @id); end
 
     def name; __doc['name'].dup; end
 

@@ -212,7 +212,9 @@ fn attrs_ref<'m>(m: &'m Model, owner: &str) -> Result<Option<&'m Attributes>, St
 /// false, reading them raises): the side table is keyed by the entity's handle (`h:<handle>`).
 fn owner_alive(m: &Model, owner: &str) -> Result<(), String> {
     let Some(h) = owner.strip_prefix("h:").and_then(|h| parse_h(h).ok()) else { return Ok(()) };
-    if "efgasncvp".contains(h.kind) && !super::entities::entity_exists(m, &h) { Err(gone()) } else { Ok(()) }
+    // `h:g:0:<uid>` is also a scene's (`Page#handle`, the key the .skp reader and writer use).
+    let scene = h.kind == 'g' && h.ctx.is_none() && m.scenes.iter().any(|s| s.ext.uid == h.id);
+    if "efgasncvp".contains(h.kind) && !scene && !super::entities::entity_exists(m, &h) { Err(gone()) } else { Ok(()) }
 }
 
 fn attrs_mut<'m>(m: &'m mut Model, owner: &str) -> Result<&'m mut Attributes, String> {
@@ -304,6 +306,38 @@ fn attr_op(c: &mut Ctx, op: &str, a: &J) -> R {
     }
 }
 
+/// The classification of a definition (`ComponentDefinition#add_classification`,
+/// `remove_classification`, `get_classification_value`, `set_classification_value`):
+/// `esq_core::classify`, SketchUp's refusals turned into its Ruby errors.
+fn classif_op(c: &mut Ctx, op: &str, a: &J) -> R {
+    use esq_core::classify::{self, SetError};
+    let d = def_ref(c.model, a, "ctx")?;
+    let schema = a.get("schema").and_then(J::as_str).unwrap_or_default();
+    let path = || -> Vec<String> {
+        a.get("path")
+            .and_then(J::as_array)
+            .map(|p| p.iter().filter_map(J::as_str).map(str::to_string).collect())
+            .unwrap_or_default()
+    };
+    match op {
+        "classif.apply" => Ok(json!(classify::apply(c.model, d, schema, str_of(a, "type")?))),
+        "classif.remove" => Ok(json!(classify::remove(c.model, d, schema, a.get("type").and_then(J::as_str)))),
+        "classif.get" => Ok(match classify::get_value(c.model, d, &path()) {
+            Some(v) => json!({"found": true, "v": val_out(&v)}),
+            None => json!({"found": false}),
+        }),
+        "classif.set" => match classify::set_value(c.model, d, &path(), val_in(&a["v"])) {
+            Ok(done) => Ok(json!(done)),
+            Err(SetError::Choice) => {
+                Err("NotImplementedError: Setting the value of 'choice' type attributes isn't supported yet.".into())
+            }
+            Err(SetError::WrongType) => Err("TypeError: Invalid value type for this attribute".into()),
+            Err(SetError::Corrupt(m)) => Err(format!("RuntimeError: {m}")),
+        },
+        _ => Err(format!("opération inconnue: {op}")),
+    }
+}
+
 // ---------------------------------------------------------------------------------------
 // Groups and component instances
 
@@ -385,52 +419,57 @@ fn inst_glue(c: &mut Ctx, a: &J) -> R {
         get_inst_mut(c.model, ctx, id)?.ext.glued_to = None;
         return Ok(J::Null);
     };
-    let h = parse_h(t)?;
+    // SketchUp's order of checks: a cycle through the instance glued to, the
+    // kind of target, the same collection, the gluing behaviour (an image always glues), the
+    // alignment with a face.
+    let wrong = || {
+        err(
+            "Arg",
+            "wrong type - expected Sketchup::Face, Sketchup::Group, SketchUp::Image or Sketchup::ComponentInstance",
+        )
+    };
+    let h = parse_h(t).map_err(|_| wrong())?;
     let key = KeyData::from_ffi(h.id);
+    if h.kind == 'i' && h.ctx == ctx {
+        // Gluing to itself, or to something that is glued (however indirectly) to it.
+        let here = ents(c.model, ctx)?;
+        let mut cur = Some(InstanceId::from(key));
+        let mut guard = 0;
+        while let Some(k) = cur {
+            if k == id {
+                return Err(err("Arg", "Can't create cyclic gluing"));
+            }
+            cur = match here.instances.get(k).and_then(|i| i.ext.glued_to) {
+                Some(GlueRef::Instance(n)) => Some(n),
+                _ => None,
+            };
+            guard += 1;
+            if guard > 1000 {
+                break;
+            }
+        }
+    }
     let glue = match h.kind {
         'f' => GlueRef::Face(FaceId::from(key)),
         'i' => GlueRef::Instance(InstanceId::from(key)),
-        _ => {
-            return Err(err(
-                "Arg",
-                "wrong type - expected Sketchup::Face, Sketchup::Group, SketchUp::Image or Sketchup::ComponentInstance",
-            ));
-        }
+        _ => return Err(wrong()),
     };
     if h.ctx != ctx {
         return Err(err("Arg", "Can only glue to something in the same component"));
     }
     let here = ents(c.model, ctx)?;
-    match glue {
-        GlueRef::Face(f) if !here.faces.contains_key(f) => return Err(err("Arg", "The instance parent is not valid")),
-        GlueRef::Instance(x) => {
-            if !here.instances.contains_key(x) {
-                return Err(err("Arg", "The instance parent is not valid"));
-            }
-            // Gluing to itself, or to something that is glued (however indirectly) to it.
-            let mut cur = Some(x);
-            let mut guard = 0;
-            while let Some(k) = cur {
-                if k == id {
-                    return Err(err("Arg", "Can't create cyclic gluing"));
-                }
-                cur = match here.instances.get(k).and_then(|i| i.ext.glued_to) {
-                    Some(GlueRef::Instance(n)) => Some(n),
-                    _ => None,
-                };
-                guard += 1;
-                if guard > 1000 {
-                    break;
-                }
-            }
-        }
-        GlueRef::Face(_) => {}
+    let present = match glue {
+        GlueRef::Face(f) => here.faces.contains_key(f),
+        GlueRef::Instance(x) => here.instances.contains_key(x),
+    };
+    if !present {
+        return Err(err("Arg", "The instance parent is not valid"));
     }
     let d = c.model.defs.get(me.def).ok_or_else(gone)?;
-    if !d.is_group && !d.ext.behavior.is2d {
+    if d.ext.image.is_none() && !d.ext.behavior.is2d {
         return Err(err("Arg", "The definition does not have glueing behavior"));
     }
-    if let (GlueRef::Face(f), true) = (glue, !d.is_group) {
+    if let GlueRef::Face(f) = glue {
         let n = here.faces[f].normal;
         let ok = match d.ext.behavior.snapto {
             1 => n.z.abs() > 1.0 - 1e-6,
@@ -591,7 +630,7 @@ fn def_info(c: &Ctx, a: &J) -> R {
         "is_image": c.model.is_image_def(d),
         "count": c.model.instance_count(d), "used": used_instances(c.model, d, 0),
         "behavior": behavior_json(&def.ext.behavior),
-        "thumb": def.ext.thumbnail_camera.map(|t| json!([pt_out(t[0]), pt_out(t[1]), pt_out(t[2])])),
+        "thumb": def.ext.thumbnail_camera.map(|t| json!([t[0].to_array(), t[1].to_array(), t[2].to_array()])),
         "path": def.ext.path, "loaded_at": def.ext.loaded_at, "guid": def.ext.guid,
     }))
 }
@@ -606,6 +645,27 @@ fn new_def(m: &mut Model, name: &str, is_group: bool) -> DefId {
         attributes: Default::default(),
         ext: DefExt { loaded_at: now(), ..Default::default() },
     })
+}
+
+/// Two paths of the same file (Windows: whatever the case and the separators).
+fn same_file(a: &str, b: &str) -> bool {
+    match (std::fs::canonicalize(a), std::fs::canonicalize(b)) {
+        (Ok(x), Ok(y)) => x == y,
+        _ => a.replace('\\', "/").eq_ignore_ascii_case(&b.replace('\\', "/")),
+    }
+}
+
+/// A fingerprint of bytes (the same in every run).
+fn fingerprint(b: &[u8]) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    b.hash(&mut h);
+    h.finish()
+}
+
+/// A fingerprint of a definition's geometry (changed by any edit).
+fn fingerprint_json(e: &esq_core::model::Entities) -> u64 {
+    fingerprint(&serde_json::to_vec(e).unwrap_or_default())
 }
 
 fn load_file(path: &str) -> Result<Model, String> {
@@ -661,7 +721,12 @@ fn def_op(c: &mut Ctx, op: &str, a: &J) -> R {
                 None => {}
                 Some(J::Null) => def.ext.thumbnail_camera = None,
                 Some(t) => {
-                    let p = |i: usize| pt(&t[i]).map(|v| v / INCH);
+                    // In inches, as given: the camera comes back exactly (`DefExt`).
+                    let p = |i: usize| -> Result<DVec3, String> {
+                        let a = t[i].as_array().filter(|a| a.len() >= 3).ok_or("point attendu [x,y,z]")?;
+                        let f = |k: usize| a[k].as_f64().ok_or("nombre attendu");
+                        Ok(DVec3::new(f(0)?, f(1)?, f(2)?))
+                    };
                     def.ext.thumbnail_camera = Some([p(0)?, p(1)?, p(2)?]);
                 }
             }
@@ -726,13 +791,61 @@ fn def_op(c: &mut Ctx, op: &str, a: &J) -> R {
             Ok(J::Null)
         }
         "defs.load" => {
+            // SketchUp's order: a newer file wants `allow_newer: true`, then
+            // the file is read; one SketchUp cannot read, or that holds only screen text, is
+            // refused; the same unchanged file loaded again gives the same definition.
+            use esq_skp::native::container::{Newer, newer};
             let path = str_of(a, "path")?;
+            let bytes = std::fs::read(path).unwrap_or_default();
+            let level = newer(&bytes);
+            if level == Newer::Soft && !a.get("allow_newer").and_then(J::as_bool).unwrap_or(false) {
+                return Err(err(
+                    "Runtime",
+                    "Model is of a newer model version that can be opened, but some information might be lost. Use `allow_newer: true` option to load the file.",
+                ));
+            }
+            if level == Newer::Hard {
+                return Err(err(
+                    "Runtime",
+                    "This operation could not be completed since the model was created in a newer version of SketchUp. To complete this operation you will need to upgrade to the latest SketchUp version.",
+                ));
+            }
+            // The model's own file cannot go into itself.
+            let own = a.get("own").and_then(J::as_str).unwrap_or("");
+            if !own.is_empty() && same_file(own, path) {
+                return Err(err("Runtime", "You cannot insert a component or model into itself."));
+            }
             let src = load_file(path)?;
+            let r = &src.root;
+            if r.edges.is_empty()
+                && r.faces.is_empty()
+                && r.instances.is_empty()
+                && r.guides.is_empty()
+                && !r.annots.is_empty()
+                && r.annots.values().all(|x| matches!(x.kind, esq_core::model::AnnotKind::ScreenText { .. }))
+            {
+                return Err(err("Runtime", "Can't insert a component with just screen text."));
+            }
+            let file_sig = fingerprint(&bytes);
+            let same =
+                c.model.defs.iter().find(|(_, d)| {
+                    d.ext.path == path && d.ext.load_sig == Some((file_sig, fingerprint_json(&d.entities)))
+                });
+            if let Some((d, _)) = same {
+                return Ok(json!(def_str(Some(d))));
+            }
             let stem = std::path::Path::new(path).file_stem().and_then(|s| s.to_str()).unwrap_or("Composant");
             let d = c.model.import_as_component(&src, stem);
+            let image = c.model.is_image_def(d);
             let def = &mut c.model.defs[d];
             def.ext.path = path.into();
             def.ext.loaded_at = now();
+            def.ext.load_sig = Some((file_sig, fingerprint_json(&def.entities)));
+            // A loaded component gets its advanced attributes.
+            if !def.is_group && !image {
+                let s = esq_core::model::DEFINITION_SET;
+                esq_core::model::give_advanced(&mut def.attributes, (s.0, &s.1));
+            }
             Ok(json!(def_str(Some(d))))
         }
         "def.save" => {
@@ -805,12 +918,23 @@ pub fn dispatch(c: &mut Ctx, op: &str, a: &J) -> Option<R> {
             Ok(json!(c.model.defs.contains_key(def_key(h.id))))
         }
         o if o.starts_with("attr.") => attr_op(c, o, a),
+        o if o.starts_with("classif.") => classif_op(c, o, a),
         "inst.info" | "inst.set" | "inst.glue" | "inst.copy" | "inst.make_unique" | "inst.explode"
         | "inst.to_component" | "inst.volume" | "inst.manifold" | "inst.local_bounds" | "inst.same_geometry"
         | "inst.solid" => inst_op(c, op, a),
         "defs.all" | "def.info" | "def.set" | "defs.add" | "defs.unique_name" | "defs.purge" | "defs.remove"
         | "def.instances" | "def.manifold" | "def.set_origin" | "defs.load" | "def.save" | "def.merge" => {
             def_op(c, op, a)
+        }
+        // How newer than SketchUp 2026 a .skp is: "no", "soft" or "hard" (Sketchup.open_file).
+        "defs.newer.info" => {
+            use esq_skp::native::container::{Newer, newer};
+            let bytes = std::fs::read(str_of(a, "path").unwrap_or_default()).unwrap_or_default();
+            Ok(json!(match newer(&bytes) {
+                Newer::No => "no",
+                Newer::Soft => "soft",
+                Newer::Hard => "hard",
+            }))
         }
         _ => return None,
     })

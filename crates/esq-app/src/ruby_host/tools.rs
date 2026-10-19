@@ -119,6 +119,10 @@ impl ToolsCx<'_> {
                 self.st.redraw = true;
                 J::Null
             }
+            "release_later" => {
+                self.st.release_ids = true;
+                J::Null
+            }
             "extents" => {
                 let list = a["list"].as_array().into_iter().flatten();
                 self.st.extents = list.filter_map(|e| Some((v3(&e[0])? * INCH, v3(&e[1])? * INCH))).collect();

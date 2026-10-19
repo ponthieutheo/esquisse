@@ -15,7 +15,7 @@ Navigation Ltd., MIT licence, unmodified.*
 - Extensions go in Esquisse's `Plugins` folder (`%APPDATA%\Esquisse\Plugins`) or are installed
   from an `.rbz` (**Extensions › Gestionnaire d'extensions**, Extension Manager), then add their
   menus, toolbars and tools as in SketchUp.
-- SketchUp's official Ruby API test suite (TestUp) passes 2,563 of 3,020 tests; sample
+- SketchUp's official Ruby API test suite (TestUp) passes 2,895 of 3,020 tests; sample
   extensions published by SketchUp on GitHub (3D Shapes, Weld, Draw Mesh) run unmodified.
 - Encrypted extensions (`.rbe`, `.rbs`), common among commercial ones, do not load.
 

@@ -300,9 +300,12 @@ fn glue_to_a_face_checks_alignment_parent_and_behavior() {
          r << err {{ comp.glued_to = face }}
          r << (comp.glued_to == face)
          r << err {{ comp.glued_to = 3 }}
+         r << err {{ comp.glued_to = model.entities.add_line([9,9,9], [9,9,10]) }}
          r << err {{ comp.glued_to = inner }}
          comp.glued_to = nil
          r << comp.glued_to
+         r << err {{ grp.glued_to = face }}
+         grp.definition.behavior.is2d = true
          grp.glued_to = face
          r << (grp.glued_to == face)
          r << err {{ grp.glued_to = grp }}
@@ -312,8 +315,10 @@ fn glue_to_a_face_checks_alignment_parent_and_behavior() {
     assert_eq!(
         r,
         "[\"ArgumentError: The definition does not have glueing behavior\", \"ArgumentError: Alignment is wrong\", \"ok\", true, \
+         \"TypeError: wrong argument type (expected Sketchup::Entity)\", \
          \"ArgumentError: wrong type - expected Sketchup::Face, Sketchup::Group, SketchUp::Image or Sketchup::ComponentInstance\", \
-         \"ArgumentError: Can only glue to something in the same component\", nil, true, \"ArgumentError: Can't create cyclic gluing\"]"
+         \"ArgumentError: Can only glue to something in the same component\", nil, \
+         \"ArgumentError: The definition does not have glueing behavior\", true, \"ArgumentError: Can't create cyclic gluing\"]"
     );
 }
 

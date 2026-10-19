@@ -115,6 +115,7 @@ fn a_comment_is_written_answered_resolved_and_undone_like_a_model_change() {
     let c = cs.items[0].clone();
     assert_eq!((c.text.as_str(), c.target.as_str()), ("Linteau à reprendre", "Face"));
     assert_eq!(c.author, a.ui_state.extra.comments.me());
+    assert_eq!(c.author, crate::settings::user_name(), "signed with the Windows user name, like Claim Credit");
     assert!(c.camera.is_some(), "the view is saved with the comment");
     assert!(a.doc.dirty);
     // The thread opens after sending; answer it with Ctrl + Entrée.

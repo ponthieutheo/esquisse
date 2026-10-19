@@ -223,7 +223,8 @@ fn line(a: DVec3, b: DVec3, color: [f32; 4], width: f32, flags: u32) -> LineInst
 
 /// For each edge, the directions pointing from it into the visible faces it bounds.
 fn edge_sides(model: &Model, ents: &Entities) -> HashMap<EdgeId, Vec<DVec3>> {
-    let vis = |l: usize| model.layers.get(l).is_none_or(|x| x.visible);
+    let shown_tags = model.layers_shown();
+    let vis = |l: usize| shown_tags.get(l).copied().unwrap_or(true);
     let mut out: HashMap<EdgeId, Vec<DVec3>> = HashMap::new();
     for (_, face) in ents.faces.iter() {
         if face.hidden || !vis(face.layer) {
@@ -456,6 +457,8 @@ struct Shared<'a> {
     /// Per collection, by address: the model does not change between the builds that
     /// share this table (see [`Parts`]).
     colls: HashMap<usize, Coll>,
+    /// `Model::layer_shown` of each tag, asked of every entity placed.
+    shown_tags: Vec<bool>,
 }
 
 /// The settings a build reads besides the model and the options.
@@ -579,6 +582,7 @@ pub fn build_parts(model: &Model, opt: &SceneOptions) -> (SceneMesh, Parts) {
         texs: TexTable::default(),
         clips: Vec::new(),
         colls: HashMap::new(),
+        shown_tags: model.layers_shown(),
     };
     let mut parts = Vec::new();
     visit_all(model, opt.style.hidden_objects, |p| {
@@ -622,6 +626,7 @@ pub fn update_parts(model: &Model, opt: &SceneOptions, parts: &mut Parts) -> Opt
         texs: std::mem::take(&mut parts.texs),
         clips: std::mem::take(&mut parts.clips),
         colls: std::mem::take(&mut parts.colls),
+        shown_tags: model.layers_shown(),
     };
     let (layers, planes) = (sh.texs.layers.len(), sh.clips.len());
     let mut patch = Patch::default();
@@ -761,7 +766,7 @@ fn place(sh: &mut Shared, p: &esq_core::walk::Placed, out: &mut SceneMesh) {
                 out.lines.push(line(a, b, rgba(c, 1.0), 1.0, LINE_KEEP))
             });
         }
-        let layer_visible = |l: usize| model.layers.get(l).is_none_or(|x| x.visible);
+        let layer_visible = |l: usize| sh.shown_tags.get(l).copied().unwrap_or(true);
         // Images always show their picture; other faces show their textures in the textured
         // and photoreal face styles (unless they are coloured by tag).
         let is_image = p.def.is_some_and(|d| model.is_image_def(d));
@@ -1125,7 +1130,7 @@ pub fn guide_points(model: &Model, opt: &SceneOptions) -> Vec<(DVec3, bool)> {
     visit(model, |p| {
         let direct = p.path.as_slice() == opt.ctx;
         for (g, guide) in p.ents.guides.iter() {
-            if guide.is_point() && !guide.hidden && model.layers.get(guide.layer).is_none_or(|x| x.visible) {
+            if guide.is_point() && !guide.hidden && model.layer_shown(guide.layer) {
                 out.push((p.xform.transform_point3(guide.pos), direct && sel.contains(&EntityRef::Guide(g))));
             }
         }

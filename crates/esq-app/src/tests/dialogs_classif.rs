@@ -52,7 +52,8 @@ fn sample_skc(dir: &Path) -> PathBuf {
         ("documentProperties.xml", "<dp:documentProperties><dp:title>Essai 1.0</dp:title></dp:documentProperties>"),
         (
             "Schemas/essai.xsd",
-            "<xs:schema targetNamespace=\"http://exemple.org/essai\">\
+            "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\" xmlns:e=\"http://exemple.org/essai\" \
+             targetNamespace=\"http://exemple.org/essai\">\
              <xs:element substitutionGroup=\"e:Ouvrage\" name=\"Mur\"/>\
              <xs:element substitutionGroup=\"e:Element\" name=\"Ouvrage\"/></xs:schema>",
         ),

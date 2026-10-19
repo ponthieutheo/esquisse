@@ -123,7 +123,7 @@ fn credits_page_claims_the_model_and_its_components() {
     ui.click(&mut a, "Crédits");
     assert_eq!(ui.value("Auteurs du modèle"), "Auteurs: Inconnus");
     ui.click(&mut a, "Revendiquer le crédit");
-    let who = crate::dialogs::mi_misc::user_name();
+    let who = crate::settings::user_name();
     let (authors, comps) = credits(&a.doc.model);
     assert_eq!(authors, vec![who.clone()]);
     assert_eq!(comps, vec![("Dalle".to_string(), who.clone())]);

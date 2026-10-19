@@ -478,6 +478,39 @@ fn export_images_in_the_application() {
     let _ = std::fs::remove_dir_all(&d);
 }
 
+/// `View#write_image` wrote its picture at the next frame: SketchUp writes it before it
+/// returns, at the size asked, whatever the view's proportions (TestUp test_write_image_legacy_*,
+/// and the textures TC_Sketchup_Face makes with it).
+#[test]
+fn view_write_image_writes_at_once() {
+    let Some(rs) = crate::tests::gpu::render_state() else { return eprintln!("pas de GPU : test sauté") };
+    let d = dir("vue");
+    let mut a = crate::app::EsquisseApp::bare(Some(crate::render::Viewport3d::new(&rs)), None);
+    a.gpu = Some(rs);
+    a.doc = doc();
+    a.cam = view_of_doc().0;
+    let code = format!(
+        "v = Sketchup.active_model.active_view
+         d = '{d}'
+         [v.write_image(\"#{{d}}/a.png\", 300, 200), File.exist?(\"#{{d}}/a.png\"),
+          v.write_image(filename: \"#{{d}}/b.jpg\", width: 64, height: 128), File.exist?(\"#{{d}}/b.jpg\"),
+          v.write_image(\"#{{d}}/c.gif\"), File.exist?(\"#{{d}}/c.gif\"),
+          v.write_image(filename: \"#{{d}}/t.png\", width: 40, height: 20, transparent: true, antialias: true)]",
+        d = rb(&d)
+    );
+    let Some(r) = super::dialogs::ruby(&mut a, &code) else { return };
+    assert_eq!(r, "[true, true, true, true, false, false, true]");
+    for (f, w, h) in [("a.png", 300, 200), ("b.jpg", 64, 128), ("t.png", 40, 20)] {
+        let img = image::open(d.join(f)).unwrap_or_else(|e| panic!("{f}: {e}"));
+        assert_eq!((img.width(), img.height()), (w, h), "{f}");
+    }
+    // `:transparent`: the background is see-through (TestUp test_write_image_options_array).
+    let t = image::open(d.join("t.png")).unwrap().to_rgba8();
+    assert_eq!(t.get_pixel(0, 0).0, [0, 0, 0, 0]);
+    assert_eq!(image::open(d.join("a.png")).unwrap().to_rgba8().get_pixel(0, 0).0[3], 255);
+    let _ = std::fs::remove_dir_all(&d);
+}
+
 /// A .skp saved from the application keeps its preview (256 × 256, the model drawn), as
 /// SketchUp does: from File › Save and from `Model#save`, whose version is the file's.
 #[test]

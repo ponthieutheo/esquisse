@@ -491,13 +491,15 @@ impl Model {
         let ents = self.import_entities(src, &src.root, &mut map);
         let name =
             if self.defs.values().any(|d| d.name == name) { self.unique_def_name(name) } else { name.to_string() };
-        // The component takes the model's description and behaviour (Model Info › File).
+        // The component takes the model's description and behaviour (Model Info › File), and
+        // its attribute dictionaries (a live or dynamic component saved as a file keeps its
+        // own there: TestUp TC_Sketchup_Entity, LiveComponent.skp).
         self.defs.insert(Definition {
             name,
             is_group: false,
             description: src.meta.description.clone(),
             entities: ents,
-            attributes: Default::default(),
+            attributes: src.attr_store.get("model").cloned().unwrap_or_default(),
             ext: crate::model::DefExt { behavior: src.behavior(), ..Default::default() },
         })
     }
@@ -564,5 +566,24 @@ mod tests {
         let d = m.import_as_component(&painted(mat("Brique", [1, 2, 3])), "D");
         assert_eq!(imported_material(&m, d).name, "Brique3");
         assert_eq!(m.materials.len(), 5);
+    }
+
+    /// A model loaded as a component gives it its attribute dictionaries (a live component
+    /// saved as a file keeps `SU_LiveComponent` on the model).
+    #[test]
+    fn a_component_takes_the_models_dictionaries() {
+        let mut src = painted(mat("Brique", [180, 90, 40]));
+        let mut dicts = crate::model::Attributes::default();
+        dicts
+            .entry("SU_LiveComponent".into())
+            .or_default()
+            .insert("Parameters".into(), crate::model::AttrValue::Text("{}".into()));
+        src.attr_store.insert("model".into(), dicts);
+        let mut m = Model::new();
+        let d = m.import_as_component(&src, "Vivant");
+        assert_eq!(
+            m.defs[d].attributes.get("SU_LiveComponent").and_then(|x| x.get("Parameters")),
+            Some(&crate::model::AttrValue::Text("{}".into()))
+        );
     }
 }

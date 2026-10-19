@@ -297,6 +297,8 @@ mod model;
 #[allow(unused_imports)]
 mod reel;
 #[allow(unused_imports)]
+mod reel2;
+#[allow(unused_imports)]
 mod textures;
 #[allow(unused_imports)]
 mod tools;

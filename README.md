@@ -48,8 +48,8 @@ Il est publié sous licence MIT.
 - **Fonctions de l'application** : 332 sur 332 (commandes, outils, formats de fichier,
   panneaux, Infos sur le modèle, Préférences), hors services en ligne de Trimble.
 - **API Ruby** : les 1 855 méthodes de l'API de SketchUp 2026 existent ; la suite officielle de
-  tests de l'API (TestUp) en réussit 2 563 sur 3 020.
-- **Tests** : 1 366 tests automatisés.
+  tests de l'API (TestUp) en réussit 2 895 sur 3 020.
+- **Tests** : 1 443 tests automatisés.
 
 ## Ce que l'on peut faire
 
@@ -130,7 +130,8 @@ recherche de commandes.
   (64 bits).
 - Les extensions chiffrées (`.rbe`, `.rbs`) ne se chargent pas, et deux entrées de menu restent
   grisées : l'outil Interagir des composants dynamiques et l'épingle de localisation.
-- 457 tests de TestUp ne passent pas encore, et 1 fichier `.skp` réel sur 1 967 diffère encore
+- 125 tests de TestUp ne passent pas encore (dont 65 que la suite saute d'elle-même et 20 qui
+  demandent des fichiers livrés avec SketchUp), et 1 fichier `.skp` réel sur 1 967 diffère encore
   du SDK.
 - L'export vidéo demande ffmpeg, qui n'est pas fourni.
 - Il n'y a pas encore de version publiée : Esquisse se compile depuis les sources.

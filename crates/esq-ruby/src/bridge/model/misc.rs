@@ -299,7 +299,7 @@ fn raytest(c: &mut Ctx, a: &J) -> R {
         let inv = p.xform.inverse();
         let (lo, ld) = (inv.transform_point3(o), inv.transform_vector3(d));
         for (fid, face) in p.ents.faces.iter() {
-            if face.hidden || !c.model.layers.get(face.layer).is_none_or(|l| l.visible) {
+            if face.hidden || !c.model.layer_shown(face.layer) {
                 continue;
             }
             for t in esq_core::tess::face_triangles(p.ents, fid) {

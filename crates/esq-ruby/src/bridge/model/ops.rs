@@ -103,6 +103,11 @@ pub fn run(c: &mut Ctx, op: &str, a: &J) -> Option<R> {
             }
         }
         "op.is_open" => Ok(json!(state().open.is_some())),
+        // The open operation's name and whether it joins the one before (`Model#active_path=`
+        // closes and reopens it around the change of path).
+        "op.state" => {
+            Ok(state().open.as_ref().map_or(J::Null, |o| json!({"name": o.name, "transparent": o.transparent})))
+        }
         _ => return None,
     })
 }

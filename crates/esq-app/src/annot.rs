@@ -307,7 +307,7 @@ pub fn styled_annotations(
     esq_core::walk::visit(model, |p| {
         let direct = p.path.as_slice() == ctx;
         for (id, a) in p.ents.annots.iter() {
-            if a.hidden || !model.layers.get(a.layer).is_none_or(|x| x.visible) {
+            if a.hidden || !model.layer_shown(a.layer) {
                 continue;
             }
             let st = style_of(model, p.ents, id);

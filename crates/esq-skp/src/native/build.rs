@@ -183,74 +183,6 @@ fn uv_map(plane: [f64; 4], tc: &doc::TexCoords, tile: [f64; 2]) -> Option<esq_co
     let frame = esq_core::texpos::Frame::of_side(origin, n, projection);
     esq_core::texpos::map_from_sketchup(&frame, &tc.matrix, tile)
 }
-/// Hue (degrees, −1 for a grey), lightness and saturation (0–1) of a colour, computed as
-/// SketchUp computes them (components divided by 255 in single precision, comparisons with a
-/// tolerance of 0.001; read in SketchUpAPI.dll).
-fn hls(c: [u8; 3]) -> (f64, f64, f64) {
-    const EPS: f64 = 0.001;
-    let [r, g, b] = c.map(|x| (x as f32 / 255.0f32) as f64);
-    let mut max = r;
-    if EPS <= g - max {
-        max = g;
-    }
-    if EPS <= b - max {
-        max = b;
-    }
-    let mut min = r;
-    if g - r <= -EPS {
-        min = g;
-    }
-    if b - min <= -EPS {
-        min = b;
-    }
-    let l = (min + max) * 0.5;
-    if (min - max).abs() < EPS {
-        return (-1.0, l, 0.0);
-    }
-    let l2 = l - 0.5;
-    let s = if l2 <= -EPS || l2.abs() < EPS { (max - min) / (min + max) } else { (max - min) / ((2.0 - max) - min) };
-    let d = max - min;
-    let (rc, gc, bc) = ((max - r) / d, (max - g) / d, (max - b) / d);
-    let mut h = 0.0;
-    if (r - max).abs() >= EPS {
-        if (g - max).abs() >= EPS {
-            if (b - max).abs() < EPS {
-                h = (gc + 4.0) - rc;
-            }
-        } else {
-            h = (rc + 2.0) - bc;
-        }
-    } else {
-        h = bc - gc;
-    }
-    h *= 60.0;
-    if h - 0.0 <= -EPS {
-        h += 360.0;
-    }
-    (h, l, s)
-}
-
-/// `SUMaterialGetColorizeDeltas`: hue, saturation and lightness offsets from the texture's
-/// average colour to the material's colour (the hue itself when the material tints).
-fn colorize_deltas(avg: [u8; 3], color: [u8; 3], shift: bool) -> [f64; 3] {
-    let grey = |c: [u8; 3]| c[0] == c[1] && c[0] == c[2];
-    let (h0, l0, s0) = if avg == [0, 0, 0] { (0.0, 0.0, 0.0) } else { hls(avg) };
-    let (mut h, mut l, mut s) = hls(color);
-    if grey(color) {
-        h = 0.0;
-        s = if grey(avg) { 0.0 } else { -1.0 };
-        l -= l0;
-    } else {
-        l -= l0;
-        if !grey(avg) {
-            s -= s0;
-            if shift {
-                h -= h0;
-            }
-        }
-    }
-    [h, s, l]
-}
 
 /// The name SketchUp gives a texture: the file's, with the extension of the image's format
 /// when it has none of an image (`photo` → `photo.jpg`, `S.` → `S..jpg`, `S. ` → `S. .jpg`:
@@ -722,14 +654,17 @@ impl B<'_> {
         if !doc.sdk_quirks {
             for s in &doc.schemas {
                 let parsed = esq_core::classify::parse_skc(&s.data, &s.path);
+                // SketchUp names a schema by the title of its `.skc` (« gbXML »), whatever the
+                // name the file gives beside it (« gbXML 5.10 »): `Classifications#keys`.
+                let name = parsed.as_ref().map_or_else(|| s.name.clone(), |p| p.name.clone());
                 let schema = esq_core::classify::Schema {
-                    name: s.name.clone(),
+                    name: name.clone(),
                     namespace: parsed.as_ref().map_or(String::new(), |p| p.namespace.clone()),
                     path: s.path.clone(),
                     types: parsed.map_or(Vec::new(), |p| p.types),
                 };
                 esq_core::classify::store_schema(&mut self.model, &schema);
-                self.model.files.insert(esq_core::classify::file_key(&s.name), esq_core::photo::Blob(s.data.clone()));
+                self.model.files.insert(esq_core::classify::file_key(&name), esq_core::photo::Blob(s.data.clone()));
             }
         }
         // The environments (`Sketchup::Environments`: `view_ext["envs"]`, `["env_current"]`,
@@ -866,11 +801,12 @@ impl B<'_> {
             // SketchUp keeps the colour, and gives the offsets from the image's average colour
             // to it; the texture's average is then the colour.
             if let Some(t) = ext.texture.as_mut() {
-                ext.colorize_deltas = colorize_deltas(t.avg, m.color, m.colorize_type == 0);
+                ext.colorize_deltas = esq_core::meta::colorize_deltas(t.avg, m.color, m.colorize_type == 0);
                 t.avg = m.color;
             }
         }
         ext.workflow = m.workflow.clamp(0, 1) as u8;
+        ext.color_alpha = m.color_alpha;
         let p = &m.pbr;
         let e = &mut ext.pbr;
         e.metalness_enabled = p.metalness_enabled;
@@ -978,7 +914,7 @@ impl B<'_> {
     fn thumbnail(&mut self, d: DefId, sd: &doc::Def) {
         let Some(t) = &sd.thumbnail else { return };
         if let Some(c) = &t.camera {
-            self.model.defs[d].ext.thumbnail_camera = Some([v3(c.eye) * IN, v3(c.target) * IN, v3(c.up)]);
+            self.model.defs[d].ext.thumbnail_camera = Some([v3(c.eye), v3(c.target), v3(c.up)]);
         }
         if let Some(img) = &t.image {
             let key = def_thumbnail_key(&self.model.defs[d].name);
@@ -1488,15 +1424,20 @@ impl B<'_> {
             };
             inst_ids.insert(i.el.id, self.place(&mut out, i, def));
         }
+        // Images are instances too: they glue and are glued to (`Image#glued_to`).
+        let mut glued: HashMap<Id, esq_core::model::InstanceId> = HashMap::new();
         for img in &e.images {
-            self.image(&mut out, img);
+            if let Some(i) = self.image(&mut out, img) {
+                glued.insert(img.inst.el.id, i);
+            }
         }
-        // What each component is glued to (`ComponentInstance#glued_to`: a face or an instance
-        // of the same collection; the SDK gives none).
+        glued.extend(inst_ids.iter().map(|(k, v)| (*k, *v)));
+        // What each component or image is glued to (`ComponentInstance#glued_to`: a face or an
+        // instance of the same collection; the SDK gives none).
         if !self.doc.sdk_quirks {
             for [to, what] in &e.glues {
-                let Some(&i) = inst_ids.get(what) else { continue };
-                let target = match (face_ids.get(to), inst_ids.get(to)) {
+                let Some(&i) = glued.get(what) else { continue };
+                let target = match (face_ids.get(to), glued.get(to)) {
                     (Some(&f), _) => esq_core::model::GlueRef::Face(f),
                     (None, Some(&t)) if t != i => esq_core::model::GlueRef::Instance(t),
                     _ => continue,
@@ -1512,8 +1453,8 @@ impl B<'_> {
     }
 
     /// An image (`images::read_images`): the texture of its definition's face, as a new image
-    /// definition of Esquisse.
-    fn image(&mut self, out: &mut Entities, img: &doc::Image) {
+    /// definition of Esquisse. Returns the instance placed.
+    fn image(&mut self, out: &mut Entities, img: &doc::Image) -> Option<esq_core::model::InstanceId> {
         let tex = match self.image_tex.get(&img.inst.def) {
             Some(&t) => t,
             None => {
@@ -1529,7 +1470,7 @@ impl B<'_> {
                 t
             }
         };
-        let Some(tex) = tex else { return };
+        let tex = tex?;
         let file = esq_core::meta::base_name(&tex.file_name);
         let mut t = texture(tex);
         // SketchUp's size of an image in pixels is the size of one tile of its texture, in
@@ -1546,7 +1487,7 @@ impl B<'_> {
             t.filename = file.clone();
         }
         let stem = std::path::Path::new(&file).file_stem().and_then(|s| s.to_str()).unwrap_or("Image").to_string();
-        let Some(d) = self.image_def(&stem, &file, t) else { return };
+        let d = self.image_def(&stem, &file, t)?;
         let i = &img.inst;
         let id = out.instances.insert(Instance {
             def: d,
@@ -1564,6 +1505,7 @@ impl B<'_> {
             },
         });
         self.shadow_flags(out, 'i', id.data().as_ffi(), &i.el);
+        Some(id)
     }
 
     /// `Model::add_image_def` (the same definition and material), its names made unique by

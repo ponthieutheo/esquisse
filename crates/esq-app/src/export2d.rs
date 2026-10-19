@@ -636,7 +636,12 @@ impl EsquisseApp {
         ppp: f64,
     ) -> anyhow::Result<PathBuf> {
         let (size, line_scale) = o.resolve(view, ppp);
-        let mut job = RasterJob::new(path, kind, o, size, line_scale);
+        self.render_raster(rs, RasterJob::new(path, kind, o, size, line_scale))
+    }
+
+    /// Renders all the tiles of `job` at once and writes the file.
+    pub fn render_raster(&mut self, rs: &egui_wgpu::RenderState, mut job: RasterJob) -> anyhow::Result<PathBuf> {
+        let size = job.size;
         while job.next < job.tiles.len() {
             if !self.render_tile(rs, &mut job) {
                 anyhow::bail!("le rendu de l'image a échoué ({} × {} pixels)", size[0], size[1]);

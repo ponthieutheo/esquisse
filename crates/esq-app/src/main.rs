@@ -66,7 +66,6 @@ mod ruby_ui;
 mod safe_path;
 mod scene;
 mod scenes;
-mod services;
 mod settings;
 mod shadows;
 mod shortcuts;

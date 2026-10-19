@@ -123,158 +123,11 @@ pub fn average(img: &DynamicImage) -> [u8; 3] {
 }
 
 // ------------------------------------------------------------------------------------------
-// Photoshop (.psd / .psb): the merged picture that ends the file ("image data" section),
-// written from Adobe's published file format specification.
-
-struct Reader<'a> {
-    b: &'a [u8],
-    at: usize,
-}
-
-impl<'a> Reader<'a> {
-    fn take(&mut self, n: usize) -> Result<&'a [u8], String> {
-        let end = self.at.checked_add(n).filter(|e| *e <= self.b.len()).ok_or("fichier tronqué")?;
-        let s = &self.b[self.at..end];
-        self.at = end;
-        Ok(s)
-    }
-    fn u16(&mut self) -> Result<u16, String> {
-        Ok(u16::from_be_bytes(self.take(2)?.try_into().unwrap()))
-    }
-    fn u32(&mut self) -> Result<u32, String> {
-        Ok(u32::from_be_bytes(self.take(4)?.try_into().unwrap()))
-    }
-    fn u64(&mut self) -> Result<u64, String> {
-        Ok(u64::from_be_bytes(self.take(8)?.try_into().unwrap()))
-    }
-    fn skip_block(&mut self, wide: bool) -> Result<(), String> {
-        let n = if wide { self.u64()? as usize } else { self.u32()? as usize };
-        self.take(n).map(|_| ())
-    }
-}
-
-/// PackBits run-length decoding of one row into `out` (exactly `len` bytes).
-fn unpack_bits(src: &[u8], len: usize, out: &mut Vec<u8>) -> Result<(), String> {
-    let start = out.len();
-    let mut i = 0;
-    while out.len() - start < len {
-        let n = *src.get(i).ok_or("ligne RLE tronquée")? as i8;
-        i += 1;
-        if n >= 0 {
-            let k = n as usize + 1;
-            out.extend_from_slice(src.get(i..i + k).ok_or("ligne RLE tronquée")?);
-            i += k;
-        } else if n != -128 {
-            let v = *src.get(i).ok_or("ligne RLE tronquée")?;
-            i += 1;
-            out.extend(std::iter::repeat_n(v, (1 - n as isize) as usize));
-        }
-    }
-    out.truncate(start + len);
-    Ok(())
-}
+// Photoshop (.psd / .psb): the merged picture (`esq_core::psd`).
 
 pub fn decode_psd(bytes: &[u8]) -> Result<DynamicImage, String> {
-    let mut r = Reader { b: bytes, at: 0 };
-    if r.take(4)? != b"8BPS" {
-        return Err("signature Photoshop absente".into());
-    }
-    let version = r.u16()?;
-    let wide = match version {
-        1 => false,
-        2 => true,
-        v => return Err(format!("version Photoshop {v} inconnue")),
-    };
-    r.take(6)?;
-    let channels = r.u16()? as usize;
-    let h = r.u32()? as usize;
-    let w = r.u32()? as usize;
-    let depth = r.u16()?;
-    let mode = r.u16()?;
-    // The header's sizes are checked before anything is made: a 30-byte file declaring
-    // 30000 × 30000 pixels of 65535 channels made the reader reserve 59 TB (the application
-    // died). Photoshop has at most 56 channels; the picture made is at most 512 MB, the
-    // limit of the other image readers.
-    if w == 0 || h == 0 || channels == 0 || channels > 56 || w * h > (512 << 20) / 4 {
-        return Err("taille d'image incohérente".into());
-    }
-    let palette = {
-        let n = r.u32()? as usize;
-        r.take(n)?.to_vec()
-    };
-    r.skip_block(false)?; // image resources
-    r.skip_block(wide)?; // layers and masks
-    let compression = r.u16()?;
-    let bpc = match depth {
-        1 => 0,
-        8 => 1,
-        16 => 2,
-        32 => 4,
-        d => return Err(format!("profondeur {d} bits non prise en charge")),
-    };
-    let row = if depth == 1 { w.div_ceil(8) } else { w * bpc };
-    let size = row * h * channels;
-    // What the file can hold: as is, or run-length encoded (128 bytes from 2 at best).
-    let left = bytes.len().saturating_sub(r.at);
-    if size > left.saturating_mul(64).saturating_add(1 << 16) {
-        return Err("données d'image tronquées".into());
-    }
-    let mut planes: Vec<u8> = Vec::with_capacity(size);
-    match compression {
-        0 => planes.extend_from_slice(r.take(size)?),
-        1 => {
-            let counts: Vec<usize> = (0..h * channels)
-                .map(|_| if wide { r.u32().map(|x| x as usize) } else { r.u16().map(|x| x as usize) })
-                .collect::<Result<_, _>>()?;
-            for c in counts {
-                unpack_bits(r.take(c)?, row, &mut planes)?;
-            }
-        }
-        c => return Err(format!("compression {c} non prise en charge")),
-    }
-    // One 8-bit sample of channel `c` at pixel `i` (16 and 32 bits keep the high byte).
-    let sample = |c: usize, i: usize| -> u8 {
-        let (y, x) = (i / w, i % w);
-        let base = c * row * h + y * row;
-        match depth {
-            1 => {
-                // Bitmap: 1 = black.
-                if planes[base + x / 8] & (0x80 >> (x % 8)) != 0 { 0 } else { 255 }
-            }
-            32 => {
-                let o = base + x * 4;
-                let f = f32::from_be_bytes([planes[o], planes[o + 1], planes[o + 2], planes[o + 3]]);
-                (f.clamp(0.0, 1.0).powf(1.0 / 2.2) * 255.0).round() as u8
-            }
-            _ => planes[base + x * bpc],
-        }
-    };
-    let mut out = RgbaImage::new(w as u32, h as u32);
-    for (i, p) in out.pixels_mut().enumerate() {
-        let a = |k: usize| if channels > k { sample(k, i) } else { 255 };
-        p.0 = match mode {
-            // RGB (an extra channel is the merged transparency).
-            3 if channels >= 3 => [sample(0, i), sample(1, i), sample(2, i), a(3)],
-            // Grayscale, duotone (shown as its gray), bitmap.
-            0 | 1 | 8 => {
-                let g = sample(0, i);
-                [g, g, g, a(1)]
-            }
-            // Indexed: 256-entry palette stored as all reds, all greens, all blues.
-            2 => {
-                let k = sample(0, i) as usize;
-                let pal = |c: usize| palette.get(c * 256 + k).copied().unwrap_or(0);
-                [pal(0), pal(1), pal(2), 255]
-            }
-            // CMYK: Photoshop stores 255 - ink.
-            4 if channels >= 4 => {
-                let (c, m, y, k) = (sample(0, i) as u32, sample(1, i) as u32, sample(2, i) as u32, sample(3, i) as u32);
-                [(c * k / 255) as u8, (m * k / 255) as u8, (y * k / 255) as u8, a(4)]
-            }
-            mode => return Err(format!("mode de couleur Photoshop {mode} non pris en charge")),
-        };
-    }
-    Ok(DynamicImage::ImageRgba8(out))
+    let (w, h, rgba, _) = esq_core::psd::decode(bytes)?;
+    RgbaImage::from_raw(w, h, rgba).map(DynamicImage::ImageRgba8).ok_or_else(|| "taille d'image incohérente".into())
 }
 
 // ------------------------------------------------------------------------------------------
@@ -368,9 +221,6 @@ pub mod tests {
         }
         assert!(decode_psd(b"8BPS").is_err());
         assert!(decode_psd(b"GIF89a").is_err());
-        let mut runs = Vec::new();
-        unpack_bits(&[0xFE, 7, 1, 9, 8], 5, &mut runs).unwrap();
-        assert_eq!(runs, [7, 7, 7, 9, 8]);
     }
 
     /// A Photoshop header of a few bytes declaring 30000 × 30000 pixels of 65535 channels

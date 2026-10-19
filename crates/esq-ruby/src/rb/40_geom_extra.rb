@@ -128,9 +128,11 @@ module Geom
       raise ArgumentError, 'Wrong number of arguments: requires 1 or 2' if args.empty?
       v = G.vec2(args[0])
       if args.size > 1
+        # SUVector2DSetLength: neither the vector nor the distance under 1e-10.
+        d = G.num(args[1])
         l = G.len2(v)
-        raise err, (err == TypeError ? 'Zero length vector)' : 'Zero distance is not allowed') if l.zero?
-        k = G.num(args[1]) / l
+        raise err, (err == TypeError ? 'Zero length vector)' : 'Zero distance is not allowed') if l < 1e-10 || d.abs < 1e-10
+        k = d / l
         v = [v[0] * k, v[1] * k]
       end
       v
@@ -212,9 +214,11 @@ module Geom
 
     def to_a; [@x, @y]; end
 
+    # a Vector2d first is copied whatever follows it.
     def set!(*a)
       raise FrozenError, "can't modify frozen #{self.class}: #{inspect}" if frozen?
       raise ArgumentError, 'wrong number arguments' if a.empty?
+      return (@x, @y = a[0].__a) && self if a[0].is_a?(Vector2d)
       raise ArgumentError, "wrong # of arguments(#{a.size})" if a.size > 2
       @x, @y = Vector2d.new(*a).__a
       self
@@ -234,26 +238,24 @@ module Geom
     def dot(o); b = G.vec2(o); @x * b[0] + @y * b[1]; end
     alias % dot
 
+    # `*` is the cross product: a number is no vector (TypeError).
     def cross(o); b = G.vec2(o); @x * b[1] - @y * b[0]; end
-
-    # SketchUp: `*` is the cross product. Extension: `vector * number` scales the vector.
-    def *(o)
-      return Vector2d.new(@x * o.to_f, @y * o.to_f) if o.is_a?(Numeric)
-      cross(o)
-    end
+    alias * cross
 
     def -@; Vector2d.new(-@x, -@y); end # extension
 
     def length; Length.new(G.len2(__a)); end
 
+    # SUVector2DSetLength: neither a length nor a vector shorter than the
+    # tolerance; the coordinates are scaled by length / current length.
     def length=(l)
       raise FrozenError, "can't modify frozen #{self.class}: #{inspect}" if frozen?
-      cur = G.len2(__a)
-      raise TypeError, 'Cannot set the length of a zero length vector' if cur.zero?
-      k = G.num(l) / cur
+      l = G.num(l)
+      cur = Math.sqrt(@y * @y + @x * @x)
+      raise ArgumentError, 'Cannot set the length of a zero length vector' if l.abs < 1e-10 || cur < 1e-10
+      k = l / cur
       @x *= k
       @y *= k
-      l
     end
 
     def normalize; Vector2d.new(G.unit2(__a)); end
@@ -302,11 +304,15 @@ module Geom
       G.same_dir?(G.unit2(__a), G.unit2(v))
     end
 
+    # SUVector2DAngleBetween: both made unit, then the arc cosine of their
+    # dot product, clamped to [-1, 1] (a zero vector stays zero).
     def angle_between(o)
       v = G.vec2(o)
-      lp = G.len2(__a) * G.len2(v)
-      return 0.0 if lp.zero?
-      Math.acos([[(@x * v[0] + @y * v[1]) / lp, 1.0].min, -1.0].max)
+      l = Math.sqrt(@x * @x + @y * @y)
+      sx, sy = l.zero? ? [0.0, 0.0] : [@x / l, @y / l]
+      m = Math.sqrt(v[1] * v[1] + v[0] * v[0])
+      ox, oy = m.zero? ? [0.0, 0.0] : [v[0] / m, v[1] / m]
+      Math.acos((oy * sy + ox * sx).clamp(-1.0, 1.0))
     end
 
     def transform(t); G.xform2(t) * self; end
@@ -322,8 +328,14 @@ module Geom
   end
 
   # Affine 2D transformation stored as [xaxis.x, xaxis.y, yaxis.x, yaxis.y, tx, ty].
+  # SketchUp keeps 6 doubles [xx, xy, yx, yy, tx, ty] (x' = xx·x + xy·y + tx) but computes in
+  # single precision (CTransformation2d: SUTransformation2DRotation, …Multiply, …GetInverse
+  # turn the doubles into floats and back).
   class Transformation2d
     IDENT = [1.0, 0.0, 0.0, 1.0, 0.0, 0.0].freeze
+
+    # A double rounded to the nearest float (one float operation is the rounded double one).
+    def self.f(x); [x].pack('f').unpack1('f'); end
 
     def self.__from(m)
       t = allocate
@@ -333,15 +345,18 @@ module Geom
 
     def self.translation(v)
       d = v.is_a?(Geom::Point2d) ? G.pt2(v) : G.vec2(v)
-      __from([1.0, 0.0, 0.0, 1.0, d[0], d[1]])
+      __from([1.0, 0.0, 0.0, 1.0, f(d[0]), f(d[1])])
     end
 
+    # cosf, sinf of the angle as a float, about the point as floats.
     def self.rotation(point, angle)
       o = G.pt2(point)
-      a = G.num(angle)
-      c = Math.cos(a)
-      s = Math.sin(a)
-      __from([c, s, -s, c, o[0] - (c * o[0] - s * o[1]), o[1] - (s * o[0] + c * o[1])])
+      x = f(o[0])
+      y = f(o[1])
+      a = f(G.num(angle))
+      c = f(Math.cos(a))
+      s = f(Math.sin(a))
+      __from([c, -s, s, c, f(x - f(f(x * c) - f(y * s))), f(y - f(f(x * s) + f(y * c)))])
     end
 
     # scaling(s), scaling(x, y), scaling(point, s), scaling(point, x, y)
@@ -360,10 +375,13 @@ module Geom
         s = [G.num(a[1]), G.num(a[2])]
       else raise ArgumentError, 'Wrong number of arguments'
       end
+      s = s.map { |v| f(v) }
       m = [s[0], 0.0, 0.0, s[1], 0.0, 0.0]
       if o
-        m[4] = o[0] - s[0] * o[0]
-        m[5] = o[1] - s[1] * o[1]
+        x = f(o[0])
+        y = f(o[1])
+        m[4] = f(x - f(s[0] * x))
+        m[5] = f(y - f(s[1] * y))
       end
       __from(m)
     end
@@ -400,20 +418,25 @@ module Geom
 
     def identity?; @m.each_with_index.all? { |v, i| (v - IDENT[i]).abs < G::TOL }; end
 
+    # A point or a vector: the matrix as floats, the coordinates as doubles.
     def *(o)
-      m = @m
+      m = @m.map { |v| Transformation2d.f(v) }
       case o
       when Point2d
         x, y = o.__a
-        Point2d.new(m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5])
+        Point2d.new(m[1] * y + m[0] * x + m[4], m[3] * y + m[2] * x + m[5])
       when Vector2d
         x, y = o.__a
-        Vector2d.new(m[0] * x + m[2] * y, m[1] * x + m[3] * y)
+        Vector2d.new(m[1] * y + m[0] * x, m[3] * y + m[2] * x)
       when Transformation2d
-        b = o.to_a
-        Transformation2d.__from([m[0] * b[0] + m[2] * b[1], m[1] * b[0] + m[3] * b[1],
-                                 m[0] * b[2] + m[2] * b[3], m[1] * b[2] + m[3] * b[3],
-                                 m[0] * b[4] + m[2] * b[5] + m[4], m[1] * b[4] + m[3] * b[5] + m[5]])
+        # in floats.
+        a = m
+        b = o.to_a.map { |v| Transformation2d.f(v) }
+        g = ->(v) { Transformation2d.f(v) }
+        Transformation2d.__from([g.(g.(b[2] * a[1]) + g.(b[0] * a[0])), g.(g.(b[3] * a[1]) + g.(b[1] * a[0])),
+                                 g.(g.(a[3] * b[2]) + g.(a[2] * b[0])), g.(g.(a[3] * b[3]) + g.(a[2] * b[1])),
+                                 g.(g.(g.(b[5] * a[1]) + g.(b[4] * a[0])) + a[4]),
+                                 g.(g.(g.(b[5] * a[3]) + g.(b[4] * a[2])) + a[5])])
       when Array
         raise TypeError, 'Not a valid argument type' unless o.size == 2 && G.numbers?(o)
         (self * Point2d.new(o)).to_a
@@ -421,12 +444,15 @@ module Geom
       end
     end
 
+    # in floats; not when the determinant is under 0.001⁴.
     def __inv
-      m = @m
-      det = m[0] * m[3] - m[1] * m[2]
-      raise ArgumentError, 'Transformation is not invertible' if det.abs < 1e-12
-      i = [m[3] / det, -m[1] / det, -m[2] / det, m[0] / det]
-      [i[0], i[1], i[2], i[3], -(i[0] * m[4] + i[2] * m[5]), -(i[1] * m[4] + i[3] * m[5])]
+      g = ->(v) { Transformation2d.f(v) }
+      a = @m.map { |v| g.(v) }
+      det = g.(g.(a[3] * a[0]) - g.(a[2] * a[1]))
+      raise ArgumentError, 'Transformation is not invertible' unless 1e-12 <= det.abs
+      k = g.(1.0 / det)
+      [g.(k * a[3]), g.(-a[1] * k), g.(-a[2] * k), g.(k * a[0]),
+       g.(g.(g.(a[5] * a[1]) - g.(a[4] * a[3])) * k), g.(g.(g.(a[4] * a[2]) - g.(a[5] * a[0])) * k)]
     end
     private :__inv
 
@@ -631,26 +657,86 @@ module Geom
   end
 
   # ---------------------------------------------------------------- LatLong / UTM
+  # The UTM conversions of SketchUp: Snyder's transverse
+  # Mercator series on the WGS 84 ellipsoid of its datum table (SketchUp forward,
+  # inverse, the meridian arc), computed in its order.
   module WGS84
     A = 6_378_137.0
-    F = 1 / 298.257223563
+    F = 1.0 / 298.257223563
     K0 = 0.9996
-    E2 = F * (2 - F)
+    E2 = (F + F) - F * F
     E = Math.sqrt(E2)
-    N = F / (2 - F)
-    # Krüger series coefficients (order 6 in n)
-    ALPHA = [N / 2 - 2 * N**2 / 3 + 5 * N**3 / 16 + 41 * N**4 / 180,
-             13 * N**2 / 48 - 3 * N**3 / 5 + 557 * N**4 / 1440,
-             61 * N**3 / 240 - 103 * N**4 / 140,
-             49_561 * N**4 / 161_280].freeze
-    BETA = [N / 2 - 2 * N**2 / 3 + 37 * N**3 / 96 - N**4 / 360,
-            N**2 / 48 + N**3 / 15 - 437 * N**4 / 1440,
-            17 * N**3 / 480 - 37 * N**4 / 840,
-            4397 * N**4 / 161_280].freeze
-    AA = A / (1 + N) * (1 + N**2 / 4 + N**4 / 64)
-    BANDS = 'CDEFGHJKLMNPQRSTUVWX'.freeze
-  end
+    D2R = 0.017453292519943295
 
+    module_function
+
+    def arc(phi)
+      return 0.0 if phi == 0.0
+      e2 = E2
+      d1 = e2 * 3.0
+      d3 = 1.0 - e2 * 0.25
+      d4 = d1 * e2
+      d5 = d4 * 0.015625
+      d9 = e2 * 5.0 * e2 * e2 * 0.00390625
+      d2 = e2 * 45.0 * e2 * e2 * 0.0009765625
+      s2 = Math.sin(phi + phi)
+      d4 *= 0.03125
+      d1 *= 0.125
+      s4 = Math.sin(phi * 4.0)
+      d10 = e2 * 15.0 * e2 * 0.00390625
+      s6 = Math.sin(phi * 6.0)
+      ((((d3 - d5) - d9) * phi - s2 * (d4 + d1 + d2)) + s4 * (d10 + d2) - s6 * ((e2 * 35.0 * e2 * e2) / 3072.0)) * A
+    end
+
+    # Latitude and longitude (degrees) to x, y around the meridian cm.
+    def forward(lat, lon, cm)
+      e2 = E2
+      ep2 = e2 / (1.0 - e2)
+      phi = lat * D2R
+      n = A / Math.sqrt(1.0 - (Math.sin(phi)**2.0) * e2)
+      tn = Math.tan(phi)
+      t = tn**2.0
+      cs = Math.cos(phi)
+      c = (cs**2.0) * ep2
+      a = (lon * D2R - cm * D2R) * cs
+      x = ((a**5.0 * (((5.0 - t * 18.0) + t * t + c * 72.0) - ep2 * 58.0)) / 120.0 +
+           (((1.0 - t) + c) * a * a * a) / 6.0 + a) * n * K0
+      q4 = (a**4.0 * ((5.0 - t) + c * 9.0 + c * 4.0 * c)) / 24.0
+      q6 = (a**6.0 * (((61.0 - t * 58.0) + t * t + c * 600.0) - ep2 * 330.0)) / 720.0
+      y = ((arc(phi) - arc(0.0)) + (q4 + a * a * 0.5 + q6) * tn * n) * K0
+      [x, y]
+    end
+
+    # x, y around the meridian cm to latitude and longitude (degrees).
+    def inverse(x, y, cm)
+      e2 = E2
+      d5 = 1.0 - e2
+      ep2 = e2 / d5
+      sq = Math.sqrt(d5)
+      e1 = (1.0 - sq) / (sq + 1.0)
+      mu = (arc(0.0) + y / K0) / ((((1.0 - e2 * 0.25) - e2 * 3.0 * e2 * 0.015625) - e2 * 5.0 * e2 * e2 * 0.00390625) * A)
+      e14 = e1**4.0
+      e13 = e1**3.0
+      phi = Math.sin(mu + mu) * (e1 * 3.0 * 0.5 - e13 * 27.0 * 0.03125) + mu +
+            Math.sin(mu * 4.0) * (e1 * 21.0 * e1 * 0.0625 - e14 * 55.0 * 0.03125) +
+            Math.sin(mu * 6.0) * ((e13 * 151.0) / 96.0) + Math.sin(mu * 8.0) * e14 * 1097.0 * 0.001953125
+      cs = Math.cos(phi)
+      c = (cs**2.0) * ep2
+      tn = Math.tan(phi)
+      t = tn**2.0
+      w = 1.0 - (Math.sin(phi)**2.0) * e2
+      n = A / Math.sqrt(w)
+      c3 = c * 3.0 * c
+      d = x / (n * K0)
+      q4 = (d**4.0 * (((t * 3.0 + 5.0 + c * 10.0) - c * 4.0 * c) - ep2 * 9.0)) / 24.0
+      q6 = (d**6.0 * ((((t * 90.0 + 61.0 + c * 298.0) + t * 45.0 * t) - ep2 * 252.0) - c3)) / 720.0
+      lat = (phi - ((n * tn) / ((A * d5) / w**1.5)) * ((d * d * 0.5 - q4) + q6)) / D2R
+      q3 = (d**3.0 * (t + t + 1.0 + c)) / 6.0
+      q5 = (d**5.0 * ((((5.0 - (c + c)) + t * 28.0) - c3) + ep2 * 8.0 + t * 24.0 * t)) / 120.0
+      lon = (((d - q3) + q5) / cs + cm * D2R) / D2R
+      [lat, lon]
+    end
+  end
   class LatLong
     def initialize(*a)
       case a.size
@@ -669,13 +755,11 @@ module Geom
       end
     end
 
+    # two numbers (rb_num2dbl), kept as given (TestUp test_latitude_integers
+    # makes one of 123).
     def __set(lat, lon)
-      lat = G.num(lat)
-      lon = G.num(lon)
-      raise ArgumentError, 'Invalid Latitude Value' if lat.abs > 90
-      raise ArgumentError, 'Invalid Longitude Value' if lon.abs > 180
-      @lat = lat
-      @lon = lon
+      @lat = G.num(lat)
+      @lon = G.num(lon)
     end
     private :__set
 
@@ -690,33 +774,18 @@ module Geom
     end
 
     def to_utm
-      w = WGS84
-      if @lat < -80 || @lat > 84
-        return __ups
-      end
-      zone = ((@lon + 180) / 6).floor + 1
-      zone = 60 if zone > 60
-      lon0 = (zone - 1) * 6 - 180 + 3
-      phi = @lat * Math::PI / 180
-      dl = (@lon - lon0) * Math::PI / 180
-      t = Math.sinh(Math.atanh(Math.sin(phi)) - w::E * Math.atanh(w::E * Math.sin(phi)))
-      xi = Math.atan2(t, Math.cos(dl))
-      eta = Math.atanh(Math.sin(dl) / Math.sqrt(1 + t * t))
-      x = eta
-      y = xi
-      w::ALPHA.each_with_index do |al, j|
-        k = 2 * (j + 1)
-        x += al * Math.cos(k * xi) * Math.sinh(k * eta)
-        y += al * Math.sin(k * xi) * Math.cosh(k * eta)
-      end
-      easting = 500_000.0 + w::K0 * w::AA * x
-      northing = w::K0 * w::AA * y
-      northing += 10_000_000.0 if @lat < 0
-      idx = ((@lat + 80) / 8).floor
-      idx = 19 if idx > 19
-      UTM.new(zone, w::BANDS[idx], easting, northing)
+      return __ups if @lat < -80.0 || @lat > 84.0
+      # the band from C, I and O left out (80° to 84° gives Y as in SketchUp);
+      # the meridian of the 6° zone; the south is 10 000 km less the distance.
+      i = (@lat + 80.0).to_i / 8
+      letter = i + 'C'.ord
+      letter += 1 if letter >= 'I'.ord
+      letter += 1 if letter >= 'O'.ord
+      cm = (@lon / 6.0).floor * 6.0 + 3.0
+      x, y = WGS84.forward(@lat, @lon, cm)
+      y = 10_000_000.0 - y if @lat < 0.0
+      UTM.new((cm.to_i + 183) / 6, letter.chr, x + 500_000.0, y)
     end
-
     def __ups
       w = WGS84
       north = @lat > 0
@@ -747,18 +816,20 @@ module Geom
         elsif v.is_a?(Array)
           raise ArgumentError, 'wrong number of values in array' unless v.size == 4
           __set(*v)
-        elsif v.is_a?(LatLong)
-          @zone, @letter, @x, @y = v.to_utm.to_a
-        else raise ArgumentError, 'wrong type - expected Sketchup::UTM'
+        else
+          # a UTM or an array, nothing else (rb_check_type).
+          raise TypeError, "wrong argument type #{v.nil? ? 'nil' : v.class} (expected Array)"
         end
       when 4 then __set(*a)
       else raise ArgumentError, "wrong # of arguments(#{a.size} for 3)"
       end
     end
 
+    # The zone by rb_num2long, the band by StringValue, the coordinates by rb_num2dbl.
     def __set(zone, letter, x, y)
       @zone = G.int(zone)
-      @letter = letter.to_s[0] || 'A'
+      raise TypeError, "no implicit conversion of #{letter.nil? ? 'nil' : letter.class} into String" unless letter.is_a?(String)
+      @letter = letter[0] || 'A'
       @x = G.num(x)
       @y = G.num(y)
     end
@@ -772,36 +843,13 @@ module Geom
     def to_s; format('UTM(%d %s %.5f %.5f)', @zone, @letter, @x, @y); end
 
     def to_latlong
-      w = WGS84
       north = @letter >= 'N'
-      if @zone.zero?
-        return __from_ups(north)
-      end
-      e = @x - 500_000.0
-      n = north ? @y : @y - 10_000_000.0
-      xi = n / (w::K0 * w::AA)
-      eta = e / (w::K0 * w::AA)
-      xi_p = xi
-      eta_p = eta
-      w::BETA.each_with_index do |b, j|
-        k = 2 * (j + 1)
-        xi_p -= b * Math.sin(k * xi) * Math.cosh(k * eta)
-        eta_p -= b * Math.cos(k * xi) * Math.sinh(k * eta)
-      end
-      chi = Math.asin(Math.sin(xi_p) / Math.cosh(eta_p))
-      # conformal -> geodetic latitude (series in n)
-      n1 = w::N
-      d = [2 * n1 - 2 * n1**2 / 3 - 2 * n1**3 + 116 * n1**4 / 45,
-           7 * n1**2 / 3 - 8 * n1**3 / 5 - 227 * n1**4 / 45,
-           56 * n1**3 / 15 - 136 * n1**4 / 35,
-           4279 * n1**4 / 630]
-      phi = chi
-      d.each_with_index { |dj, j| phi += dj * Math.sin(2 * (j + 1) * chi) }
-      lon0 = (@zone - 1) * 6 - 180 + 3
-      lam = Math.atan2(Math.sinh(eta_p), Math.cos(xi_p))
-      LatLong.new(phi * 180 / Math::PI, lon0 + lam * 180 / Math::PI)
+      return __from_ups(north) if @zone.zero?
+      # the south counted from 10 000 km; the meridian of the zone.
+      y = north ? @y : 10_000_000.0 - @y
+      lat, lon = WGS84.inverse(@x - 500_000.0, y, (@zone * 6 - 183).to_f)
+      LatLong.new(lat, lon)
     end
-
     def __from_ups(_north)
       w = WGS84
       north = @letter >= 'Y'

@@ -13,6 +13,8 @@ indexmap.workspace = true
 earcutr.workspace = true
 anyhow.workspace = true
 miniz_oxide = "0.8"
+# Reads the XML schemas of the classifications (`classify_tree`), as esq-app and esq-formats do (MIT OR Apache-2.0).
+roxmltree = "0.21"
 
 [dev-dependencies]
 # Reads the DWG and DXF files `dwg` writes back (MIT OR Apache-2.0).

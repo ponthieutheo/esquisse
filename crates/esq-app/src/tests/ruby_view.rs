@@ -23,6 +23,10 @@ struct TestHost {
 
 impl esq_ruby::Host for TestHost {
     fn call(&mut self, model: &mut Model, _sel: &mut Vec<EntityRef>, op: &str, args: &J) -> Result<J, String> {
+        // Nothing is open for editing (what the application answers then).
+        if op == "model.path" {
+            return Ok(serde_json::json!({"path": [], "ctx": "0"}));
+        }
         let mut cx = ViewCx {
             cam: &mut self.cam,
             style: &mut self.style,
@@ -213,6 +217,39 @@ fn picking_inferences_and_projection() {
         o.result,
         "[[400, 300], [60.0, -140.0, 200.0], [0.0, 0.707107, -0.707107], true, Sketchup::Face, 0.0, 2, 1, 1, Sketchup::Face, Sketchup::Face, 1, [Sketchup::Face], true, -1, true, [60.0, 60.0, 0.0], true, 5]"
     );
+}
+
+/// `window_pick` et `boundingbox_pick` rendaient l'intérieur des groupes : SketchUp prend les
+/// entités en cours d'édition, une instance comme un tout, dedans quand tout ce qu'elle a l'est
+/// (TestUp TC_Sketchup_PickHelper *_group_*) ; boundingbox_pick
+/// veut 2 ou 3 arguments et une boîte (TypeError).
+#[test]
+fn picks_take_groups_as_a_whole() {
+    let mut h = host();
+    let mut m = Model::new();
+    let Some(o) = run(
+        &mut h,
+        &mut m,
+        "m = Sketchup.active_model
+         v = m.active_view
+         inside = m.entities.add_group
+         inside.entities.add_face([1, 1, 2], [5, 1, 2], [5, 5, 2], [1, 5, 2])
+         across = m.entities.add_group
+         across.entities.add_face([1, 1, 5], [5, 1, 5], [5, 5, 5], [1, 5, 5])
+         across.entities.add_face([6, 6, 5], [12, 6, 5], [12, 12, 5], [6, 12, 5])
+         bb = Geom::BoundingBox.new.add([-10, -10, -10], [10, 10, 10])
+         ph = v.pick_helper
+         a = [ph.boundingbox_pick(bb, Sketchup::PickHelper::PICK_INSIDE), ph.all_picked.map(&:class),
+              ph.boundingbox_pick(bb, Sketchup::PickHelper::PICK_CROSSING)]
+         v.camera = Sketchup::Camera.new([3, 3, 200], [3, 3, 0], [0, 1, 0])
+         wide = ph.window_pick([0, 0], [2000, 2000], Sketchup::PickHelper::PICK_INSIDE)
+         a + [wide, ph.all_picked.map(&:class).uniq,
+              (begin; ph.boundingbox_pick(bb); rescue => e; e.class; end),
+              (begin; ph.boundingbox_pick('', 999); rescue => e; e.class; end)]",
+    ) else {
+        return;
+    };
+    assert_eq!(o.result, "[1, [Sketchup::Group], 2, 2, [Sketchup::Group], ArgumentError, TypeError]");
 }
 
 #[test]

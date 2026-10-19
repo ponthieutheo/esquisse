@@ -13,32 +13,42 @@ LAYER_IS_HIDDEN_ON_NEW_PAGES = 0x20 unless defined?(LAYER_IS_HIDDEN_ON_NEW_PAGES
 
 module Sketchup
   # ------------------------------------------------------------------ images
+  # Les pixels comme SketchUp les garde (SUImageRep) : lignes depuis le haut, BGR ou BGRA (ou un
+  # octet de gris), chaque ligne suivie de `row_padding` octets. Une image chargée a 24 bits
+  # par pixel, 32 si un de ses pixels n'est pas opaque, 8 si elle est en gris sans
+  # transparence (bridge/model/images.rs), et des lignes alignées sur 4 octets.
   class ImageRep
+    # (rb_scan_args « 01 ») : sans argument (ou nil), une image vide.
     def initialize(*args)
-      @w = 0
-      @h = 0
-      @bpp = 32
-      @pad = 4
-      @data = ''.b
-      load_file(args[0]) if args[0].is_a?(String)
+      raise ArgumentError, "wrong number of arguments (given #{args.size}, expected 0..1)" if args.size > 1
+      @w = @h = @bpp = @pad = 0
+      @data = nil
+      load_file(args[0]) unless args.empty? || args[0].nil?
     end
 
     def width; @w; end
     def height; @h; end
-    def size; [@w, @h]; end
     def bits_per_pixel; @bpp; end
     def row_padding; @pad; end
-    def data; @data.dup; end
+    # SUImageRepGetDataSize : les octets des pixels, marges des lignes comprises.
+    def size; @data ? @data.bytesize : 0; end
+    # nil pour une image vide.
+    def data; @data && @data.dup; end
 
+    # StringValue (TypeError), ArgumentError si le fichier ne se lit pas.
     def load_file(path)
-      raise TypeError, 'wrong argument type' unless path.is_a?(String)
+      path = Esq.str_arg(path)
       __assign(Esq.call('img.load', 'path' => path))
+      nil
     end
 
+    # RuntimeError si l'image ne s'écrit pas (vide, dossier absent, type
+    # inconnu).
     def save_file(path)
-      raise TypeError, 'wrong argument type' unless path.is_a?(String)
+      path = Esq.str_arg(path)
+      raise RuntimeError, 'failed to save image' unless @data
       Esq.call('img.save', __fields.merge('path' => path))
-      self
+      nil
     end
 
     def self.__from(r); new.__assign(r); end
@@ -49,66 +59,91 @@ module Sketchup
       self
     end
 
-    def __fields; { 'w' => @w, 'h' => @h, 'bpp' => @bpp, 'pad' => @pad, 'data' => [@data].pack('m0') }; end
+    def __fields; { 'w' => @w, 'h' => @h, 'bpp' => @bpp, 'pad' => @pad, 'data' => [@data || ''].pack('m0') }; end
 
+    # quatre entiers non signés (TypeError, RangeError), une chaîne
+    # (TypeError), dont la taille vaut (bpp × largeur / 8 + marge) × hauteur ; puis
+    # SUImageRepSetData : données vides, taille nulle ou bpp hors de 8/24/32 lèvent ArgumentError.
     def set_data(width, height, bits_per_pixel, row_padding, pixel_data)
+      w = Esq::Conv.num2uint(width)
+      h = Esq::Conv.num2uint(height)
+      bpp = Esq::Conv.num2uint(bits_per_pixel)
+      pad = Esq::Conv.num2uint(row_padding)
       raise TypeError, 'expected binary string' unless pixel_data.is_a?(String)
-      unless width.to_i > 0 && height.to_i > 0 && [8, 24, 32].include?(bits_per_pixel)
-        raise ArgumentError, 'invalid width, height, or bits per pixel. Width or height must be greater than 0. Bits per pixel must be 8/24/32.'
-      end
-      pad = row_padding.to_i
-      raise ArgumentError, 'invalid pixel data' if pad < 1
-      row = ((width * bits_per_pixel / 8) + pad - 1) / pad * pad
-      if pixel_data.bytesize != row * height
+      if pixel_data.bytesize != ((bpp * w) / 8 + pad) * h
         raise ArgumentError, 'width, height, bits per pixel and row padding must equate to the size of the binary string'
       end
-      @w, @h, @bpp, @pad = width, height, bits_per_pixel, pad
+      raise ArgumentError, 'invalid pixel data' if pixel_data.empty?
+      unless w > 0 && h > 0 && [8, 24, 32].include?(bpp)
+        raise ArgumentError, 'invalid width, height, or bits per pixel. Width or height must be greater than 0. Bits per pixel must be 8/24/32.'
+      end
+      @w, @h, @bpp, @pad = w, h, bpp, pad
       @data = pixel_data.b
       self
     end
 
-    def colors
+    # La couleur du pixel (x, y) depuis le haut.
+    def __pixel(x, y)
+      if @bpp == 8
+        g = @data.getbyte(y * (@w + @pad) + x).to_i
+        return [g, g, g, 255]
+      end
       px = @bpp / 8
-      row = ((@w * px) + @pad - 1) / @pad * @pad
-      out = []
+      o = y * (@w * px + @pad) + x * px
+      [@data.getbyte(o + 2), @data.getbyte(o + 1), @data.getbyte(o), px == 4 ? @data.getbyte(o + 3) : 255]
+    end
+
+    # SUImageRepGetDataAsColors : nil pour une image vide.
+    def colors
+      return nil unless @data
+      out = Array.new(@w * @h)
+      i = 0
       @h.times do |y|
         @w.times do |x|
-          o = y * row + x * px
-          b = @data.getbyte(o)
-          if px == 1
-            out << Sketchup::Color.new(b, b, b)
-          else
-            out << Sketchup::Color.new(@data.getbyte(o + 2), @data.getbyte(o + 1), b, px == 4 ? @data.getbyte(o + 3) : 255)
-          end
+          out[i] = Sketchup::Color.new(*__pixel(x, y))
+          i += 1
         end
       end
       out
     end
 
-    # Couleur au point (u, v) de l'image (0..1, origine en haut à gauche), interpolée.
+    # (rb_scan_args « 21 », rb_num2dbl) puis le lecteur de SketchUp:
+    #  u et v se répètent, v monte depuis le bas ; le pixel sous le point, ou
+    # le mélange des quatre plus proches de son centre (bilinéaire), tronqué. nil si vide.
     def color_at_uv(*args)
-      u, v = args[0].respond_to?(:x) ? [args[0].x, args[0].y] : [args[0], args[1]]
-      raise ArgumentError, 'invalid image' if @w.zero?
-      u = u.to_f % 1.0
-      v = v.to_f % 1.0
-      x = (u * (@w - 1))
-      y = (v * (@h - 1))
-      x0, y0 = x.floor, y.floor
-      x1, y1 = [x0 + 1, @w - 1].min, [y0 + 1, @h - 1].min
-      fx, fy = x - x0, y - y0
-      cs = colors
-      px = ->(i, j) { cs[j * @w + i].to_a }
-      mix = lambda do |c|
-        (px.(x0, y0)[c] * (1 - fx) * (1 - fy) + px.(x1, y0)[c] * fx * (1 - fy) +
-         px.(x0, y1)[c] * (1 - fx) * fy + px.(x1, y1)[c] * fx * fy).round
+      raise ArgumentError, "wrong number of arguments (given #{args.size}, expected 2..3)" unless (2..3).cover?(args.size)
+      u = Esq::Conv.num2dbl(args[0])
+      v = Esq::Conv.num2dbl(args[1])
+      bilinear = args.size > 2 && args[2] ? true : false
+      return nil unless @data && @w > 0 && @h > 0
+      fu = u % 1.0
+      fv = -v % 1.0
+      x = (@w * fu).to_i
+      x = @w - 1 if x >= @w
+      y = (@h * fv).to_i
+      y = @h - 1 if y >= @h
+      return Sketchup::Color.new(*__pixel(x, y)) unless bilinear
+      near = lambda do |d, i, n|
+        if d < 0.5 then [0.5 - d, i - 1 < 0 ? n - 1 : i - 1]
+        elsif d > 0.5 then [d - 0.5, i + 1 > n - 1 ? 0 : i + 1]
+        else [0.5, i]
+        end
       end
-      Sketchup::Color.new(mix.(0), mix.(1), mix.(2), mix.(3))
+      wx, x1 = near.(@w * fu - x, x, @w)
+      wy, y1 = near.(@h * fv - y, y, @h)
+      c00, c10, c01, c11 = __pixel(x, y), __pixel(x1, y), __pixel(x, y1), __pixel(x1, y1)
+      mix = (0..3).map do |k|
+        f = (c00[k] * (1 - wx) * (1 - wy) + c10[k] * wx * (1 - wy) + c01[k] * (1 - wx) * wy + c11[k] * wx * wy) / 255.0
+        f <= 0.0 ? 0 : (f >= 1.0 ? 255 : (f * 255.0).to_i)
+      end
+      Sketchup::Color.new(*mix)
     end
 
     def self.__solid(w, h, rgb)
-      row = (w * 3 + 3) / 4 * 4
-      line = ([rgb[2], rgb[1], rgb[0]] * w).pack('C*').ljust(row, "\0".b)
-      new.set_data(w, h, 24, 4, line * h)
+      row = w * 3
+      pad = (4 - row % 4) % 4
+      line = ([rgb[2], rgb[1], rgb[0]] * w).pack('C*') + ("\0".b * pad)
+      new.set_data(w, h, 24, pad, line * h)
     end
   end
 
@@ -144,11 +179,19 @@ module Sketchup
       size
     end
 
+    # La matière de la texture.
+    def parent; @mat; end
+
+    # Le chemin par StringValue (TypeError) ; la colorisation n'est pas encore appliquée.
     def write(path, colorize = false)
-      d = Esq.call('mat.tex_data', 'id' => @mat.id, 'slot' => @slot) or return false
-      Esq.call('img.convert', 'path' => path.to_s, 'data' => d['data'])
-    rescue StandardError
-      false
+      path = Esq.str_arg(path)
+      _ = colorize
+      begin
+        d = Esq.call('mat.tex_data', 'id' => @mat.id, 'slot' => @slot) or return false
+        Esq.call('img.convert', 'path' => path, 'data' => d['data'])
+      rescue StandardError
+        false
+      end
     end
 
     # Décodée en mémoire : le nom de fichier de la texture (venu du modèle) ne sert jamais de chemin.
@@ -339,11 +382,7 @@ module Sketchup
 
     private
 
-    # ni matière d'image, ni matière d'étiquette sur une entité du modèle.
-    def __check_material(m)
-      return unless m.is_a?(Sketchup::Material)
-      raise ArgumentError, 'Cannot assign image material to model entities' if m.owner_type == Sketchup::Material::OWNER_IMAGE
-    end
+    def __check_material(m); Esq.material_setter_check!(m); end
   end
   # ------------------------------------------------------------------ matières
   class Material < Entity
@@ -397,14 +436,17 @@ module Sketchup
       false
     end
     def deleted?; !valid?; end
-    def entityID; @id.to_i; end
+    def entityID; Esq.object_pid(:material, @id.to_i); end
     alias persistent_id entityID
     def parent; Sketchup.active_model.materials; end
     def erase!; raise NoMethodError, "undefined method `erase!' for #{inspect}"; end
 
     def name; __info['name']; end
+    # StringValue ; le même nom ne change rien, celui d'une autre matière lève
+    # ArgumentError.
     def name=(n)
-      __update('name' => n.to_s)
+      s = Esq.str_arg(n)
+      __update('name' => s) unless s == name
       n
     end
     def display_name
@@ -421,15 +463,20 @@ module Sketchup
     def inspect; "#<Sketchup::Material:#{format('0x%016x', object_id * 8)}>"; end
 
     def alpha; __info['alpha']; end
+    # rb_num2dbl, ramené entre 0 et 1.
     def alpha=(a)
-      __update('alpha' => a.to_f.clamp(0.0, 1.0))
+      __update('alpha' => Esq::Conv.num2dbl(a).clamp(0.0, 1.0))
       a
     end
     def use_alpha?; alpha < 1.0; end
     def color; Sketchup::Color.new(*__info['color']); end
+    # nil ou ce dont Color.new fait une couleur ; (0, 0, 0, 0) retire la
+    # colorisation d'une texture colorisée (le pont fait le reste).
     def color=(c)
-      c = Sketchup::Color.new(c) unless c.is_a?(Sketchup::Color)
-      __update('color' => c.to_a.first(3))
+      rgba = if c.nil? then [0, 0, 0, 0]
+             else (c.is_a?(Sketchup::Color) ? c : Sketchup::Color.new(c)).to_a
+             end
+      __update('color' => rgba)
       c
     end
     def materialType; __info['type']; end
@@ -437,9 +484,12 @@ module Sketchup
     def owner_type; __info['owner_image'] ? OWNER_IMAGE : OWNER_MANAGER; end
     def colorize_deltas; __info['colorize_deltas']; end
     def colorize_type; __info['colorize_type']; end
+    # un entier non signé (TypeError, RangeError), au plus 2, sinon
+    # ArgumentError.
     def colorize_type=(t)
-      raise ArgumentError, 'Invalid colorization type' unless [COLORIZE_SHIFT, COLORIZE_TINT].include?(t)
-      __update('colorize_type' => t)
+      v = Esq::Conv.num2uint(t)
+      raise ArgumentError, 'Invalid colorization type' unless v < 3
+      __update('colorize_type' => v)
       t
     end
 
@@ -483,10 +533,12 @@ module Sketchup
     end
 
     # A SketchUp .skm, written by the application; without it, Esquisse's earlier format.
+    # le chemin par StringValue.
     def save_as(path)
-      ok = Esq.host('model.write_skm', { 'path' => path.to_s, 'material' => Esq.call('mat.dump', 'id' => @id) }, nil)
+      path = Esq.str_arg(path)
+      ok = Esq.host('model.write_skm', { 'path' => path, 'material' => Esq.call('mat.dump', 'id' => @id) }, nil)
       return ok ? true : false unless ok.nil?
-      Esq.call('mat.export', 'id' => @id, 'path' => path.to_s) ? true : false
+      Esq.call('mat.export', 'id' => @id, 'path' => path) ? true : false
     end
 
     def write_thumbnail(path, size)
@@ -591,9 +643,12 @@ module Sketchup
       nil # fichier illisible : la matière reste inchangée, comme dans SketchUp
     end
 
+    # Une ImageRep n'a pas de nom de fichier : SketchUp prend un format par défaut, « .jpg »
+    # (« .png » pour une image avec transparence) ; les pixels sont gardés sans perte (PNG).
     def __load_image_rep(slot, rep)
       png = Esq.call('img.encode', rep.__fields)
-      Esq.call('mat.tex_set', 'id' => @id, 'slot' => slot, 'data' => png, 'name' => 'image.png')
+      name = rep.bits_per_pixel == 32 ? '.png' : '.jpg'
+      Esq.call('mat.tex_set', 'id' => @id, 'slot' => slot, 'data' => png, 'name' => name)
     end
 
     def __set_slot(slot, t)
@@ -631,16 +686,18 @@ module Sketchup
     alias size length
     def count(*a, &b); a.empty? && !b ? length : super; end
 
+    # un nom (nil s'il n'y en a pas), sinon un index par rb_num2long
+    # (TypeError), négatif depuis la fin.
     def [](k)
       list = Esq.call('mat.list')
-      case k
-      when Integer
-        raise IndexError, "index #{k} out of range [0, #{list.size})" if k < 0 || k >= list.size
-        Material.__for(list[k])
-      when String
+      if k.is_a?(String)
         i = list.find { |m| m['name'] == k }
-        i && Material.__for(i)
+        return i && Material.__for(i)
       end
+      n = Esq::Conv.num2long(k)
+      n += list.size if n.negative?
+      raise IndexError, "index #{n} out of range [0, #{list.size})" if n.negative? || n >= list.size
+      Material.__for(list[n])
     end
     alias at []
 
@@ -653,11 +710,35 @@ module Sketchup
       m
     end
 
+    # faux pour nil, 0 ou une matière effacée ; la matière
+    # d'une image lève ArgumentError ; un nom, sinon le nom d'une couleur
+    # (ArgumentError « Cannot find material named … » à défaut) ; autre chose, la matière de
+    # cette couleur.
     def remove(mat)
-      raise ArgumentError, 'Cannot get material from argument' unless mat.is_a?(Material)
-      Esq.call('mat.remove', 'id' => mat.id)
-      Esq.emit(@observers, :onMaterialRemove, self, mat)
+      return false if mat.nil? || (mat.is_a?(Integer) && mat.zero?)
+      m = case mat
+          when Material
+            return false unless mat.valid?
+            raise ArgumentError, 'Cannot assign image material to model entities' if mat.owner_type == Material::OWNER_IMAGE
+            mat
+          when String
+            self[mat] || __by_color(Sketchup::Color.new(mat)) || raise(ArgumentError, "Cannot find material named #{mat}")
+          else
+            __by_color(Sketchup::Color.new(mat))
+          end
+      return false unless m
+      Esq.call('mat.remove', 'id' => m.id)
+      Esq.emit(@observers, :onMaterialRemove, self, m)
       true
+    rescue ArgumentError => e
+      raise e unless mat.is_a?(String) && !e.message.start_with?('Cannot find material')
+      raise ArgumentError, "Cannot find material named #{mat}"
+    end
+
+    # La matière d'une couleur, aucune pour (0, 0, 0, 0).
+    def __by_color(c)
+      return nil if c.to_a == [0, 0, 0, 0]
+      find { |x| x.color.to_a.first(3) == c.to_a.first(3) }
     end
 
     def purge_unused
@@ -687,16 +768,18 @@ module Sketchup
     end
 
     # A SketchUp .skm read by the application, else a file of Esquisse's earlier format.
+    # le chemin par StringValue ; un échec lève RuntimeError.
     def load(path)
-      raise ArgumentError, 'wrong argument type' unless path.is_a?(String)
+      path = Esq.str_arg(path)
       data = Esq.host('model.read_skm', { 'path' => path }, nil)
       m = Material.__for(Esq.call('mat.import', 'path' => path, 'material' => data))
       Esq.emit(@observers, :onMaterialAdd, self, m)
       m
     end
 
-    def unique_name(base = nil)
-      Esq.call('mat.unique_name', 'name' => base.nil? ? 'Material' : base.to_s)
+    # un nom par StringValue.
+    def unique_name(base)
+      Esq.call('mat.unique_name', 'name' => Esq.str_arg(base))
     end
 
     def add_observer(obs); @observers << obs unless @observers.include?(obs); true; end
@@ -704,11 +787,24 @@ module Sketchup
   end
 
   # ------------------------------------------------------------------ styles de ligne
+  # Les douze styles de ligne de SketchUp 2026, dans l'ordre de son gestionnaire (les noms
+  # qu'écrit esq-skp, `native::write::plan::LINE_STYLES`). Une étiquette sans style garde la
+  # chaîne vide dans le modèle : `Layer#line_style` rend nil.
   class LineStyle < Entity
-    NAMES = ['Solid Line', 'Dotted Line', 'Short Dashes Line', 'Dashes Line', 'Dash Dot Dash Line'].freeze
-    attr_reader :name
+    NAMES = ['Solid Basic', 'Short dash', 'Dash', 'Dot', 'Dash dot', 'Dash double-dot', 'Dash triple-dot',
+             'Double-dash dot', 'Double-dash double-dot', 'Double-dash triple-dot', 'Long-dash dash',
+             'Long-dash double-dash'].freeze
+    CACHE = {}
+    private_class_method :new
+
+    # Un seul objet Ruby par style (SketchUp garde l'enveloppe de chaque objet natif).
+    def self.__for(name)
+      CACHE[name] ||= new(name)
+    end
+
     def initialize(name); @name = name; super("s:0:#{NAMES.index(name)}"); end
     def valid?; true; end
+    def name; @name.dup; end
     def ==(o); o.is_a?(LineStyle) && o.name == @name; end
     alias eql? ==
     def hash; @name.hash; end
@@ -720,21 +816,23 @@ module Sketchup
     def valid?; true; end
     def size; LineStyle::NAMES.size; end
     alias length size
-    def names; LineStyle::NAMES.dup; end
-    def to_a; LineStyle::NAMES.map { |n| LineStyle.new(n) }; end
-    def each(&b)
-      return to_enum(:each) unless b
-      to_a.each(&b)
+    def names; LineStyle::NAMES.map(&:dup); end
+    def to_a; LineStyle::NAMES.map { |n| LineStyle.__for(n) }; end
+    def each
+      return to_enum(:each) unless block_given?
+      to_a.each { |s| yield s }
       self
     end
+
+    # un nom (nil s'il n'existe pas), sinon un index (rb_num2long : TypeError
+    # pour nil ou un autre objet), négatif depuis la fin.
     def [](k)
-      case k
-      when Integer
-        raise IndexError, "index #{k} out of range [0, #{size})" if k < 0 || k >= size
-        LineStyle.new(LineStyle::NAMES[k])
-      when String
-        LineStyle::NAMES.include?(k) ? LineStyle.new(k) : nil
-      end
+      return (LineStyle::NAMES.include?(k) ? LineStyle.__for(k) : nil) if k.is_a?(String)
+      i = Esq::Conv.num2long(k)
+      n = size
+      j = i < 0 ? i + n : i
+      raise IndexError, "index #{j} out of range [0, #{n})" if j < 0 || j >= n
+      LineStyle.__for(LineStyle::NAMES[j])
     end
     alias at []
   end
@@ -828,7 +926,7 @@ module Sketchup
 
     def valid?; Esq.call('layer.list').any? { |l| l['uid'] == @uid }; end
     def deleted?; !valid?; end
-    def entityID; @uid; end
+    def entityID; Esq.object_pid(:tag, @uid); end
     alias persistent_id entityID
     def parent; Sketchup.active_model.layers; end
     def erase!; raise NoMethodError, "undefined method `erase!' for #{inspect}"; end
@@ -842,6 +940,8 @@ module Sketchup
     end
     def display_name; name == Layers::DEFAULT_NAME ? 'Untagged' : name; end
     def visible?; __info['visible']; end
+    # une étiquette du chemin actif ne se cache pas ; cachée, l'étiquette active
+    # cède la place à l'étiquette par défaut, et la sélection perd ce qu'elle ne montre plus.
     def visible=(v)
       __update('visible' => v ? true : false)
       v
@@ -850,24 +950,29 @@ module Sketchup
       c = __info['color']
       Sketchup::Color.new(*(c || [128, 128, 128]))
     end
+    # la valeur passe par la conversion de Sketchup::Color (nil : TypeError, un
+    # nom inconnu : ArgumentError) ; l'étiquette garde une couleur opaque (SketchUp 2020+).
     def color=(c)
-      c = Sketchup::Color.new(c) unless c.nil? || c.is_a?(Sketchup::Color)
-      __update('color' => c && c.to_a.first(3))
+      c = Sketchup::Color.new(c) unless c.is_a?(Sketchup::Color)
+      __update('color' => c.to_a.first(3))
       c
     end
     def page_behavior; __info['page_behavior']; end
+    # un entier non signé (TypeError, RangeError) ; seuls les bits 0x01, 0x10 et
+    # 0x20 existent, et pas 0x10 avec 0x20.
     def page_behavior=(v)
-      raise ArgumentError, 'Invalid page behavior' unless v.is_a?(Integer)
-      __update('page_behavior' => v)
+      __update('page_behavior' => Esq::Conv.num2uint(v))
       v
     end
+    # nil quand l'étiquette n'a pas de style de ligne.
     def line_style
       n = __info['line_style']
-      LineStyle.new(LineStyle::NAMES.include?(n) ? n : LineStyle::NAMES[0])
+      LineStyle::NAMES.include?(n) ? LineStyle.__for(n) : nil
     end
+    # nil enlève le style (SULayerClearLineStyle).
     def line_style=(ls)
-      raise ArgumentError, 'wrong argument type (expected Sketchup::LineStyle)' unless ls.is_a?(LineStyle)
-      __update('line_style' => ls.name)
+      Esq::Conv.wrong_type('LineStyle') unless ls.nil? || ls.is_a?(LineStyle)
+      __update('line_style' => ls ? ls.name : '')
       ls
     end
     def folder
@@ -875,13 +980,17 @@ module Sketchup
       f ? Sketchup.active_model.layers.__folder(f) : nil
     end
     def folder=(f)
-      raise TypeError, 'parent must be a Sketchup::LayerFolder or nil' unless f.nil? || f.is_a?(LayerFolder)
+      raise TypeError, 'parent must be a Sketchup::LayerFolder or nil' unless f.nil? || (f.is_a?(LayerFolder) && f.valid?)
       __update('folder' => f && f.uid)
       f
     end
+    include Comparable
+    # l'autre côté passe par la conversion en étiquette (un nom, nil pour
+    # l'étiquette par défaut ; le reste lève ArgumentError) ; les noms affichés se comparent
+    # sans la casse.
     def <=>(other)
-      return nil unless other.is_a?(Layer)
-      name <=> other.name
+      o = Sketchup.active_model.layers.__tag_arg(other)
+      display_name.downcase <=> o.display_name.downcase
     end
     def ==(o); o.is_a?(Layer) && o.uid == @uid; end
     alias eql? ==
@@ -912,18 +1021,45 @@ module Sketchup
     end
 
     def valid?; Esq.call('folder.list').any? { |f| f['uid'] == @uid }; end
-    def entityID; @uid; end
+    def entityID; Esq.object_pid(:tag, @uid); end
     alias persistent_id entityID
-    def parent; Sketchup.active_model.layers; end
+    # le dossier qui le contient, sinon le gestionnaire des étiquettes.
+    def parent; folder || Sketchup.active_model.layers; end
     def erase!; raise NoMethodError, "undefined method `erase!' for #{inspect}"; end
 
+    # Un dossier, comme les méthodes de SketchUp le convertissent.
+    def self.__arg(f)
+      Esq::Conv.wrong_type('LayerFolder') unless f.is_a?(LayerFolder)
+      Esq::Conv.deleted('LayerFolder') unless f.valid?
+      f
+    end
+
+    # Un argument « dossier existant ou nom d'un nouveau » (commun à
+    # Layers#add_folder et LayerFolder#add_folder) : un dossier existant y est déplacé.
+    def self.__add_to(parent_uid, arg)
+      unless arg.is_a?(String) || (arg.is_a?(LayerFolder) && arg.valid?)
+        raise TypeError, 'Must provide an existing Sketchup::LayerFolder or a name for a new folder'
+      end
+      if arg.is_a?(String)
+        raise ArgumentError, 'Folder name cannot be empty' if arg.empty?
+        return __notify(:onLayerFolderAdded, __for(Esq.call('folder.add', 'name' => arg, 'parent' => parent_uid)))
+      end
+      arg.__update('parent' => parent_uid)
+      arg
+    end
+
     def name; __info['name']; end
+    # une chaîne (rb_unexpected_type sinon), non vide ; les noms en double sont
+    # permis.
     def name=(n)
-      raise ArgumentError, 'Folder names cannot be empty.' unless n.is_a?(String) && !n.empty?
+      Esq::Conv.str!(n)
+      raise ArgumentError, 'Folder names cannot be empty.' if n.empty?
       __update('name' => n)
       n
     end
     alias display_name name
+    # Le drapeau du dossier lui-même : ses étiquettes et ses sous-dossiers
+    # gardent le leur.
     def visible?; __info['visible']; end
     def visible=(v)
       __update('visible' => v ? true : false)
@@ -939,20 +1075,22 @@ module Sketchup
       p ? Sketchup.active_model.layers.__folder(p) : nil
     end
     def folder=(f)
-      raise TypeError, 'parent must be a Sketchup::LayerFolder or nil' unless f.nil? || f.is_a?(LayerFolder)
+      raise TypeError, 'parent must be a Sketchup::LayerFolder or nil' unless f.nil? || (f.is_a?(LayerFolder) && f.valid?)
       __update('parent' => f && f.uid)
       f
     end
 
-    def add_folder(name)
-      raise ArgumentError, 'Folder names cannot be empty.' unless name.is_a?(String) && !name.empty?
-      LayerFolder.__notify(:onLayerFolderAdded, LayerFolder.__for(Esq.call('folder.add', 'name' => name, 'parent' => @uid)))
+    def add_folder(arg)
+      __info
+      LayerFolder.__add_to(@uid, arg)
     end
+    # un dossier enfant direct ; ce qu'il contenait remonte dans celui-ci.
     def remove_folder(f)
-      raise ArgumentError, 'folder is not a child' unless f.is_a?(LayerFolder) && f.folder == self
+      LayerFolder.__arg(f)
+      raise ArgumentError, 'folder is not a child' unless f.folder == self
       Esq.call('folder.remove', 'uid' => f.uid)
       LayerFolder.__notify(:onLayerFolderRemoved, f)
-      true
+      nil
     end
 
     # LayersObserver#onLayerFolderAdded / onLayerFolderRemoved (layers, folder).
@@ -961,24 +1099,43 @@ module Sketchup
       Esq.emit(layers.__observers, event, layers, folder)
       folder
     end
+
+    # Parcours d'une liste qui peut changer pendant qu'on la parcourt : le
+    # nombre est relu à chaque tour ; s'il a baissé sous l'index courant, avertissement et arrêt.
+    def self.__each_live(list)
+      n = list.call.size
+      i = 0
+      while i < n
+        cur = list.call
+        if cur.size <= i
+          warn "don't modify the collection while iterating"
+          break
+        end
+        yield cur[i]
+        i += 1
+      end
+      nil
+    end
+
     def folders; Esq.call('folder.list').select { |f| f['parent'] == @uid }.map { |f| LayerFolder.__for(f) }; end
     def count_folders; folders.size; end
     def each_folder(&b)
       return to_enum(:each_folder) unless b
-      folders.each(&b)
-      self
+      LayerFolder.__each_live(-> { folders }, &b)
     end
 
+    # une étiquette (ArgumentError sinon), pas l'étiquette par défaut.
     def add_layer(layer)
-      raise ArgumentError, 'argument must be a Sketchup::Layer' unless layer.is_a?(Layer)
+      raise ArgumentError, 'argument must be a Sketchup::Layer' unless layer.is_a?(Layer) && layer.valid?
       layer.folder = self
-      layer
+      nil
     end
+    # l'étiquette revient à la racine.
     def remove_layer(layer)
-      raise ArgumentError, 'argument must be a Sketchup::Layer' unless layer.is_a?(Layer)
+      raise ArgumentError, 'argument must be a Sketchup::Layer' unless layer.is_a?(Layer) && layer.valid?
       raise ArgumentError, 'layer is not a child' unless layer.folder == self
       layer.folder = nil
-      true
+      nil
     end
     def layers; Esq.call('layer.list').select { |l| l['folder'] == @uid }.map { |l| Layer.__for(l) }; end
     def count_layers; layers.size; end
@@ -986,17 +1143,18 @@ module Sketchup
     alias size count_layers
     def each_layer(&b)
       return to_enum(:each_layer) unless b
-      layers.each(&b)
-      self
+      LayerFolder.__each_live(-> { layers }, &b)
     end
     alias each each_layer
     include Enumerable
 
+    # nil pour ce qui n'est pas un dossier valide ; les noms se comparent sans
+    # la casse.
     def <=>(other)
-      return nil unless other.is_a?(LayerFolder)
-      name <=> other.name
+      return nil unless other.is_a?(LayerFolder) && other.valid?
+      name.downcase <=> other.name.downcase
     end
-    def ==(o); o.is_a?(LayerFolder) && o.uid == @uid; end
+    def ==(o); equal?(o) || (o.is_a?(LayerFolder) && o.uid == @uid && o.valid?); end
     alias eql? ==
     def hash; @uid.hash; end
   end
@@ -1013,6 +1171,8 @@ module Sketchup
     def valid?; true; end
 
     def __list; Esq.call('layer.list'); end
+    # Tous les dossiers, à toute profondeur.
+    def __all_folders; Esq.call('folder.list').map { |f| LayerFolder.__for(f) }; end
     def __folder(uid)
       i = Esq.call('folder.list').find { |f| f['uid'] == uid }
       i && LayerFolder.__for(i)
@@ -1051,21 +1211,31 @@ module Sketchup
     def length; __list.size; end
     alias size length
 
-    def [](k)
+    # L'étiquette d'un nom : « Layer0 », sans la casse, est celle par défaut,
+    # qui répond aussi à son nom affiché « Untagged ».
+    def __named(name)
       list = __list
-      case k
-      when Integer
-        raise IndexError, "index #{k} out of range [0, #{list.size})" if k < 0 || k >= list.size
-        Layer.__for(list[k])
-      when String
-        i = list.find { |l| l['name'] == k }
-        i && Layer.__for(i)
-      end
+      i = name.casecmp?(DEFAULT_NAME) || name == 'Untagged' ? list[0] : list.find { |l| l['name'] == name }
+      i && Layer.__for(i)
+    end
+
+    # un nom (nil s'il n'existe pas), sinon un index (rb_num2long), négatif
+    # depuis la fin.
+    def [](k)
+      return __named(k) if k.is_a?(String)
+      list = __list
+      i = Esq::Conv.num2long(k)
+      j = i < 0 ? i + list.size : i
+      raise IndexError, "index #{j} out of range [0, #{list.size})" if j < 0 || j >= list.size
+      Layer.__for(list[j])
     end
     alias at []
 
+    # l'étiquette de ce nom si elle existe, sinon une nouvelle.
     def add(name)
       raise ArgumentError, 'tag name required' unless name.is_a?(String) && !name.empty?
+      found = __named(name)
+      return found if found
       i = Esq.call('layer.add', 'name' => name)
       l = Layer.__for(i)
       Esq.emit(@observers, :onLayerAdded, self, l) if i['created']
@@ -1073,57 +1243,65 @@ module Sketchup
     end
     alias add_layer add
 
+    # un index, sinon la conversion en étiquette (un nom, nil = l'étiquette par
+    # défaut ; ArgumentError pour le reste) ; un 2e argument vrai efface aussi la géométrie.
     def remove(*args)
       raise ArgumentError, 'must have 1 or 2 arguments' unless (1..2).cover?(args.size)
       target, del = args
-      list = __list
       if target.is_a?(Integer)
-        raise IndexError, "index #{target} out of range [0, #{list.size})" if target < 0 || target >= list.size
-        target = Layer.__for(list[target])
+        list = __list
+        j = target < 0 ? target + list.size : target
+        raise IndexError, "index #{j} out of range [0, #{list.size})" if j < 0 || j >= list.size
+        target = Layer.__for(list[j])
+      else
+        target = __tag_arg(target)
       end
-      raise ArgumentError, "tag doesn't belong to this model" unless target.is_a?(Layer) && target.valid?
+      raise ArgumentError, 'cannot remove default tag' if target == self[0]
+      raise ArgumentError, "tag doesn't belong to this model" unless target.valid?
       Esq.call('layer.remove', 'uid' => target.uid, 'delete_geometry' => del ? true : false)
       Esq.emit(@observers, :onLayerRemoved, self, target)
       true
     end
     alias remove_layer remove
 
+    # le nombre d'étiquettes retirées.
     def purge_unused
-      n = Esq.call('layer.purge')
-      n > 0
+      Esq.call('layer.purge')
     end
     alias purge_unused_layers purge_unused
 
-    def unique_name(base = nil)
-      Esq.call('layer.unique_name', 'name' => base.nil? ? 'Tag1' : base.to_s)
+    # « Tag » par défaut ; un nom libre est rendu tel quel, un nom pris (ou
+    # « Layer0 ») reçoit le premier numéro libre.
+    def unique_name(*args)
+      raise ArgumentError, "wrong number of arguments (given #{args.size}, expected 0..1)" if args.size > 1
+      base = args.empty? ? 'Tag' : Esq.str_arg(args[0])
+      Esq.call('layer.unique_name', 'name' => base)
     end
 
     def layers; __list.select { |l| l['folder'].nil? }.map { |l| Layer.__for(l) }; end
     def count_layers; __list.count { |l| l['folder'].nil? }; end
     def each_layer(&b)
       return to_enum(:each_layer) unless b
-      layers.each(&b)
-      self
+      LayerFolder.__each_live(-> { layers }, &b)
     end
 
     def folders; Esq.call('folder.list').select { |f| f['parent'].nil? }.map { |f| LayerFolder.__for(f) }; end
     def count_folders; folders.size; end
     def each_folder(&b)
       return to_enum(:each_folder) unless b
-      folders.each(&b)
-      self
+      LayerFolder.__each_live(-> { folders }, &b)
     end
-    def add_folder(name)
-      raise ArgumentError, 'Folder names cannot be empty.' unless name.is_a?(String) && !name.empty?
-      LayerFolder.__notify(:onLayerFolderAdded, LayerFolder.__for(Esq.call('folder.add', 'name' => name)))
-    end
+    def add_folder(arg); LayerFolder.__add_to(nil, arg); end
+    # un dossier de la racine ; ce qu'il contenait remonte à la racine.
     def remove_folder(f)
-      raise ArgumentError, 'folder is not a child' unless f.is_a?(LayerFolder) && f.valid? && f.folder.nil?
+      LayerFolder.__arg(f)
+      raise ArgumentError, 'folder is not a child' unless f.folder.nil?
       Esq.call('folder.remove', 'uid' => f.uid)
       LayerFolder.__notify(:onLayerFolderRemoved, f)
-      true
+      nil
     end
-    def purge_unused_folders; Esq.call('folder.purge') > 0; end
+    # le nombre de dossiers retirés.
+    def purge_unused_folders; Esq.call('folder.purge'); end
 
     def dump; each { |l| $stdout.puts("#{l.name} (#{l.visible? ? 'visible' : 'hidden'})") }; nil; end
     def add_observer(obs); @observers << obs unless @observers.include?(obs); true; end
@@ -1131,6 +1309,19 @@ module Sketchup
   end
 
   # ------------------------------------------------------------------ ombres et options
+  module ::Esq
+    # The name an option or a provider is asked by: a String as is, otherwise an index read by
+    # rb_num2long (TypeError for nil), negative from the end; nil past either end.
+    module OptionKey
+      def self.of(key, names)
+        return key if key.is_a?(String)
+        i = Esq::Conv.num2long(key)
+        i += names.size if i.negative?
+        i.negative? || i >= names.size ? nil : names[i]
+      end
+    end
+  end
+
   class OptionsProvider
     include Enumerable
     class << self
@@ -1147,7 +1338,9 @@ module Sketchup
     def size; __data.size; end
     alias length size
     def keys; __data.keys; end
-    def [](key); __data[key.to_s]; end
+
+    # a name, or an index by rb_num2long (negative from the end).
+    def [](key); __data[Esq::OptionKey.of(key, keys)]; end
     def []=(key, value)
       Esq.call('opt.set', 'provider' => @name, 'key' => key.to_s, 'value' => value)
       Esq.emit(@observers, :onOptionsProviderChanged, self, key.to_s)
@@ -1184,8 +1377,9 @@ module Sketchup
     def keys; Esq.call('opt.providers'); end
     def size; keys.size; end
     alias length size
+    # a name, or an index by rb_num2long (negative from the end).
     def [](key)
-      k = key.is_a?(Integer) ? keys[key] : key.to_s
+      k = Esq::OptionKey.of(key, keys)
       return nil unless k && keys.include?(k)
       @providers[k] ||= OptionsProvider.send(:new, k)
     end

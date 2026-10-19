@@ -53,6 +53,9 @@ pub struct State {
     pub origin: egui::Pos2,
     /// Window › Overlays: an overlay turned on or off.
     pub toggle: Option<(String, bool)>,
+    /// Ids of Ruby tools left during a script: they become free when the interface is idle
+    /// again, as SketchUp frees them in its event loop.
+    pub release_ids: bool,
     drawn: Option<(u64, String)>,
     synced: Option<(u64, Vec<EntityRef>)>,
     cam_sig: String,
@@ -248,6 +251,9 @@ fn observers(app: &mut EsquisseApp, now: f64) -> String {
         }
     }
     let st = &mut app.ui_state.extra.ruby_tools;
+    if std::mem::take(&mut st.release_ids) {
+        code.push_str("Esq::Tools.idle\n");
+    }
     // The document Ruby first sees is not a replacement (File › New at start-up, before Ruby).
     if st.synced.is_none() {
         st.replaced = None;

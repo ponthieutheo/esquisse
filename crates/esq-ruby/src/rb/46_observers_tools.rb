@@ -232,12 +232,15 @@ module Esq
       end
 
       # Une liste propre à une classe a changé (add_observer / remove_observer).
+      # Ce qui a changé avant l'ajout d'un observateur va aux observateurs déjà là : le nouveau
+      # n'entend que ce qui suit (SketchUp ne rejoue rien à l'ajout).
+      def before_ext_add
+        flush unless @busy
+      end
+
       def ext_changed(added)
         @ext_count = EXT.keys.sum { |k| ext_observers(k).size }
-        if added && !@busy
-          flush
-          rebaseline
-        end
+        rebaseline if added && !@busy
         notify_host
       end
 
@@ -643,6 +646,7 @@ module Esq
       # l'application sait déjà (annuler, rétablir, valider…), voir app_sync.
       def flush(hints = [], from_app = false)
         return unless watching?
+        return if @unrecorded
         if @busy
           @dirty = true
           return
@@ -681,7 +685,21 @@ module Esq
       end
 
       def run_events(ev, changed, hints)
+        return if @aborting
+        # The operation counted open may be gone with the model it was opened on.
+        if @op_depth > 0 && !(Esq.call('op.state') rescue nil)
+          @op_depth = 0
+          deliver_pending
+        end
         explicit = @op_depth > 0
+        # Since SketchUp 2016, observers no longer hear of changes in the middle of an
+        # operation: what it changes is told when it is committed (TestUp
+        # test_attribute_dictionary_evil_observer_with_operation).
+        if explicit && hints.empty? && !@delivering
+          (@pending ||= []).concat(ev)
+          @op_changed = true if changed
+          return
+        end
         commit = hints.include?('commit')
         undo = hints.include?('undo')
         again = hints.include?('redo')
@@ -719,7 +737,7 @@ module Esq
       end
 
       # Appelé après chaque appel natif qui peut avoir modifié le modèle.
-      READ_ONLY = /(\A|\.)(info|get|list|valid\??|names?|count|bounds|query|state|find|raytest|read|exists|is_\w+|has_\w+|take|ping|size)\z|\Apick\./
+      READ_ONLY = Esq::READ_OPS
 
       def after_call(op)
         return unless watching?
@@ -772,6 +790,16 @@ module Esq
         app_event(how == 'open' ? :onOpenModel : :onNewModel, model)
       end
 
+      # A script replaced the model (Model#close, Sketchup.file_new, Sketchup.open_file): the
+      # entities are gone with it, and so are their observers, before an entity of the next
+      # model takes the same handle (SketchUp's observers stay on the deleted entity; TestUp
+      # TC_Sketchup_ComponentDefinition leaves one that purges, on a deleted definition).
+      def entities_replaced
+        ent_lists.delete_if { |k, _| k.is_a?(String) }
+        @ent_objs = {}
+        rebaseline if watching?
+      end
+
       # Model#start_operation / commit_operation / abort_operation : la zone modèle annonce
       # onTransactionStart / Commit / Abort ; ici on suit seulement si une opération est ouverte
       # (pas de transaction implicite par appel) et on livre les événements des éléments avant
@@ -781,8 +809,54 @@ module Esq
         @op_changed = false
       end
 
+      # What the operation changed is told now, before it is committed; what the observers
+      # change meanwhile is told at once.
       def before_commit
         flush
+        deliver_pending
+      end
+
+      def deliver_pending
+        return if @delivering || (@pending || []).empty?
+        @delivering = true
+        begin
+          until @pending.empty?
+            ev = @pending
+            @pending = []
+            ev.each(&:call)
+          end
+        ensure
+          @delivering = false
+        end
+      end
+
+      # An aborted operation leaves nothing to tell: the model is back as it was.
+      def aborting
+        @aborting = true
+        yield
+      ensure
+        @aborting = false
+        @pending = []
+        rebaseline if watching?
+      end
+
+      # A change SketchUp makes outside any undo operation (a scene's drawing axes, TestUp
+      # test_set_axes_parent_to_page): no transaction, no event; what came before is told.
+      def unrecorded
+        return yield if @unrecorded
+        flush
+        @unrecorded = true
+        begin
+          yield
+        ensure
+          @unrecorded = false
+          rebaseline if watching?
+        end
+      end
+
+      # Ce que l'opération ouverte a changé jusqu'ici (suivi seulement quand on observe).
+      def op_changed?
+        @op_changed ? true : false
       end
 
       def operation_ended
@@ -801,6 +875,7 @@ module Esq
   # Classes qui gardent leur propre liste : on suit seulement ses changements.
   module ExtObservable
     def add_observer(obs)
+      Esq::Events.before_ext_add
       r = super
       Esq::Events.ext_changed(r)
       r
@@ -870,7 +945,7 @@ module Esq
     end
 
     def abort_operation
-      r = super
+      r = Esq::Events.aborting { super }
       Esq::Events.operation_ended
       r
     end
@@ -961,10 +1036,14 @@ module Esq
         @ruby_active = false
         @native = SELECT
         @free_ids = []
+        @pending_ids = []
         @next_id = 50_000
       end
 
-      # Identifiants d'outils Ruby : 50000, 50001… ; ceux des outils abandonnés sont réutilisés.
+      # Identifiants d'outils Ruby : 50000, 50001… ; ceux des outils abandonnés
+      # sont réutilisés, les derniers libérés d'abord, mais seulement quand l'interface est de
+      # nouveau au repos (SketchUp les met de côté, les rend dans la boucle
+      # d'événements) : pendant un script, chaque outil choisi a un identifiant neuf.
       def alloc_id
         return @free_ids.pop unless @free_ids.empty?
         @next_id += 1
@@ -981,7 +1060,16 @@ module Esq
       def release(token)
         @registry.delete(token)
         id = @ids.delete(token)
-        @free_ids << id if id
+        return unless id
+        (@pending_ids ||= []) << id
+        host('release_later')
+      end
+
+      # L'interface est au repos (ruby_tools.rs) : les identifiants mis de côté sont libres.
+      def idle
+        @free_ids.concat(@pending_ids || [])
+        @pending_ids = []
+        nil
       end
 
       def active_token; @ruby_active ? @stack.last : nil; end
@@ -1228,6 +1316,8 @@ module Esq
       end
 
       def add(o)
+        # An overlay taken out of a model is over (Overlay#valid? is false).
+        raise RuntimeError, 'invalid overlay' unless o.valid?
         return false if find(o.overlay_id)
         raise ArgumentError, 'name cannot be an empty string' if o.name.empty?
         raise ArgumentError, 'overlay already added to a model' if o.__manager
@@ -1247,6 +1337,7 @@ module Esq
         Esq::Tools.call(o, :stop)
         @list.delete(o)
         o.__manager = nil
+        o.__invalidate
         sync_host
         true
       end
@@ -1418,7 +1509,9 @@ module Sketchup
       nil
     end
 
-    def valid?; true; end
+    # Until it is removed from its model (TestUp test_valid_Query, test_remove_lifetime).
+    def valid?; !@__gone; end
+    def __invalidate; @__gone = true; end
 
     def clone
       raise TypeError, 'Cannot duplicate or clone Sketchup::Overlay.'

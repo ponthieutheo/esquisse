@@ -2232,6 +2232,8 @@ impl Reader<'_> {
             color = [64, 64, 64, 255];
         }
         m.color = rgb(color);
+        // `Material#color` gives the alpha byte as stored (0 in files of older SketchUps).
+        m.color_alpha = (color[3] != 255).then_some(color[3]);
         // The SDK's values for files without physically based settings.
         m.pbr = Pbr {
             metallic_factor: 1.0,

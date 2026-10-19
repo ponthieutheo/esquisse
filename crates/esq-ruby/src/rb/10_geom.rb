@@ -83,6 +83,16 @@ module Esq
     end
 
     def add(a, b); [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; end
+    # A vector argument made a unit vector: a zero one (every coordinate within
+    # 1e-10, SUVector3DIsValid) raises ArgumentError.
+    def unit_arg(v)
+      a = vec(v)
+      raise ArgumentError, 'Cannot create unit vector from zero length vector' if a.all? { |c| c.abs <= 1e-10 }
+      unit(a)
+    end
+
+    # u × a + v × b, as a Vector3d (u and v: vectors).
+    def combine(u, a, v, b); Geom::Vector3d.new(add(scale(u.to_a, a), scale(v.to_a, b))); end
     def sub(a, b); [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; end
     def dot(a, b); a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; end
     def scale(a, k); [a[0] * k, a[1] * k, a[2] * k]; end
@@ -596,10 +606,13 @@ module Geom
 
     def __a; [@x, @y, @z]; end
 
+    # each weight (rb_num2dbl) before its point; p2 * w2 + p1 * w1.
     def self.linear_combination(w1, p1, w2, p2)
+      u = G.num(w1)
       a = G.pt(p1)
+      v = G.num(w2)
       b = G.pt(p2)
-      new(G.add(G.scale(a, G.num(w1)), G.scale(b, G.num(w2))))
+      new((0..2).map { |i| b[i] * v + a[i] * u })
     end
 
     def x; Length.new(@x); end
@@ -770,8 +783,12 @@ module Geom
 
     def self.linear_combination(*a)
       raise ArgumentError, 'wrong number arguments: 4 or 6 required' unless a.size == 4 || a.size == 6
+      # each weight (rb_num2dbl) before its vector.
       r = [0.0, 0.0, 0.0]
-      a.each_slice(2) { |w, v| r = G.add(r, G.scale(G.vec(v), G.num(w))) }
+      a.each_slice(2) do |w, v|
+        k = G.num(w)
+        r = G.add(r, G.scale(G.vec(v), k))
+      end
       new(r)
     end
 
@@ -830,12 +847,9 @@ module Geom
     def +(o); Vector3d.new(G.add(__a, G.vec(o))); end
     def -(o); Vector3d.new(G.sub(__a, G.vec(o))); end
 
-    # SketchUp: `*` is the cross product and `%` the dot product.
-    # Extension kept for the rest of Esquisse: `vector * number` scales the vector.
-    def *(o)
-      return Vector3d.new(G.scale(__a, o.to_f)) if o.is_a?(Numeric)
-      Vector3d.new(G.cross(__a, G.vec(o)))
-    end
+    # `*` is the cross product and `%` the dot product: a number is no vector
+    # (ArgumentError).
+    def *(o); Vector3d.new(G.cross(__a, G.vec(o))); end
 
     def cross(o); Vector3d.new(G.cross(__a, G.vec(o))); end
     def dot(o); G.dot(__a, G.vec(o)); end
@@ -847,15 +861,17 @@ module Geom
 
     def length; Length.new(G.len(__a)); end
 
+    # SUVector3DSetLength: any length, but not of a vector shorter than 1e-10;
+    # the coordinates are scaled by length / current length.
     def length=(l)
       raise FrozenError, "can't modify frozen #{self.class}: #{inspect}" if frozen?
-      cur = G.len(__a)
-      raise TypeError, 'Cannot set the length of a zero length vector)' if cur.zero?
-      k = G.num(l) / cur
+      l = G.num(l)
+      cur = Math.sqrt(@y * @y + @x * @x + @z * @z)
+      raise TypeError, 'Cannot set the length of a zero length vector)' if cur < 1e-10
+      k = l / cur
       @x *= k
       @y *= k
       @z *= k
-      l
     end
 
     def normalize; Vector3d.new(G.unit(__a)); end
@@ -874,7 +890,8 @@ module Geom
       self
     end
 
-    def valid?; G.len(__a) > 0.0; end
+    # not when every coordinate is within 1e-10 of zero.
+    def valid?; !(@x.abs <= 1e-10 && @y.abs <= 1e-10 && @z.abs <= 1e-10); end
 
     def unitvector?; (G.len(__a) - 1.0).abs < G::TOL; end
 
@@ -994,33 +1011,41 @@ module Geom
     end
 
     # axes(origin, xaxis, yaxis[, zaxis])
+    # each axis is made a unit vector (ArgumentError for a zero
+    # vector), z defaults to x × y.
     def self.axes(*a)
       raise ArgumentError, 'Wrong number of arguments: 3 or 4 required' if a.size < 3
       o = G.pt(a[0])
-      x = G.vec(a[1])
-      y = G.vec(a[2])
+      x = G.unit_arg(a[1])
+      y = G.unit_arg(a[2])
       if a.size > 3
-        z = G.vec(a[3])
+        z = G.unit_arg(a[3])
       else
         z = G.cross(x, y)
-        raise ArgumentError, 'Zero length vector for zaxis' if G.len(z) <= 1e-12
+        raise ArgumentError, 'Zero length vector for zaxis' if z.all? { |c| c.abs <= 1e-10 }
       end
       __axes(o, x, y, z)
     end
 
+    # SUTransformationInterpolate: a weight outside 0..1 leaves
+    # the identity, one within 0.001 of 0 or 1 a copy of t1 or t2; otherwise the origins are
+    # mixed and the rotations of the 3×3 parts slerped, scale
+    # left out. A mirror's 3×3 reads as some rotation, as in SketchUp.
     def self.interpolate(t1, t2, weight)
-      G.xform(t1)
-      G.xform(t2)
+      a = G.xform(t1).to_a
+      b = G.xform(t2).to_a
       w = G.num(weight)
-      # SketchUp: a weight outside 0..1 leaves the identity; near 0 or 1 gives a copy of t1 or t2.
       return new if w < 0 || w > 1
-      return t1.clone if w.abs <= G::TOL
-      return t2.clone if (w - 1).abs <= G::TOL
-      a = G.decompose(t1.to_a)
-      b = G.decompose(t2.to_a)
-      s = (0..2).map { |i| a[0][i] + (b[0][i] - a[0][i]) * w }
-      tr = (0..2).map { |i| a[2][i] + (b[2][i] - a[2][i]) * w }
-      __from(G.compose(s, G.slerp(a[1], b[1], w), tr))
+      copy = ->(m) { __from(m[0, 3] + [0.0] + m[4, 3] + [0.0] + m[8, 3] + [0.0] + m[12, 3] + [1.0 / (1.0 / m[15])]) }
+      return copy.(a) if w.abs < G::TOL
+      return copy.(b) if (w - 1.0).abs < G::TOL
+      x, y, z, s = G.su_slerp(G.su_quat(a), G.su_quat(b), w)
+      u = 1.0 - w
+      o = [b[12] * w + u * a[12] + 0.0, u * a[13] + b[13] * w + 0.0, b[14] * w + u * a[14] + 0.0]
+      __from([1.0 - 2.0 * (z * z + y * y), 2.0 * (x * y + s * z), 2.0 * (x * z - s * y), 0.0,
+              2.0 * (x * y - s * z), 1.0 - 2.0 * (x * x + z * z), 2.0 * (z * y + s * x), 0.0,
+              2.0 * (x * z + s * y), 2.0 * (z * y - s * x), 1.0 - 2.0 * (x * x + y * y), 0.0,
+              o[0], o[1], o[2], 1.0])
     end
 
     def initialize(*a)
@@ -1229,8 +1254,9 @@ module Geom
         return false if o.empty? || empty?
         return (0..2).all? { |i| o.__min[i] >= @min[i] && o.__max[i] <= @max[i] }
       end
-      return false if empty?
+      # The point is read first, empty box or not (TestUp test_contains_Query_invalid_argument_*).
       p = G.pt(o)
+      return false if empty?
       (0..2).all? { |i| p[i] >= @min[i] && p[i] <= @max[i] }
     end
 
@@ -1286,39 +1312,72 @@ module Geom
     def intersect_plane_plane(p1, p2)
       a1, b1, c1, d1 = G.plane(p1)
       a2, b2, c2, d2 = G.plane(p2)
-      n1 = [a1, b1, c1]
-      n2 = [a2, b2, c2]
-      dir = G.cross(n1, n2)
-      l2 = G.dot(dir, dir)
-      return nil if l2 < 1e-18
-      pt = G.scale(G.add(G.scale(G.cross(n2, dir), d1), G.scale(G.cross(dir, n1), d2)), 1.0 / l2)
-      [Point3d.new(pt), Vector3d.new(G.unit(dir))]
+      # the direction n1 × n2 (none below 1e-10); the point is the one where
+      # the coordinate of the direction's largest component is 0.
+      dir = G.cross([a1, b1, c1], [a2, b2, c2])
+      return nil if Math.sqrt(dir[1] * dir[1] + dir[0] * dir[0] + dir[2] * dir[2]) < 1e-10
+      u = G.unit(dir)
+      ax, ay, az = u.map(&:abs)
+      pt = if ax < ay || ax < az
+             if ay < az
+               [(b1 * d2 - b2 * d1) / dir[2], (d1 * a2 - d2 * a1) / dir[2], 0.0]
+             else
+               [(c2 * d1 - c1 * d2) / dir[1], 0.0, (d2 * a1 - d1 * a2) / dir[1]]
+             end
+           else
+             [0.0, (c1 * d2 - c2 * d1) / dir[0], (b2 * d1 - b1 * d2) / dir[0]]
+           end
+      [Point3d.new(pt), Vector3d.new(u)]
     end
 
-    # Best-fit plane [a, b, c, d] through the points (at least three).
-    def fit_plane_to_points(*pts)
-      pts = pts[0] if pts.size == 1 && pts[0].is_a?(Array) && !G.point_array?(pts[0])
-      raise ArgumentError, 'At least three points needed to fit a plane' if pts.size < 3
-      ps = pts.map { |p| G.pt(p) }
-      c = ps.reduce([0.0, 0.0, 0.0]) { |s, p| G.add(s, p) }
-      c = G.scale(c, 1.0 / ps.size)
-      # Newell normal gives the orientation of the polygon; the covariance matrix the best fit.
-      nw = [0.0, 0.0, 0.0]
-      ps.each_with_index do |p, i|
-        q = ps[(i + 1) % ps.size]
-        nw[0] += (p[1] - q[1]) * (p[2] + q[2])
-        nw[1] += (p[2] - q[2]) * (p[0] + q[0])
-        nw[2] += (p[0] - q[0]) * (p[1] + q[1])
+    # one argument must be an array of the points (TypeError otherwise); the
+    # plane is SketchUp's least squares fit: the centred sums,
+    # the coordinate whose 2×2 determinant is the largest taken as 1, turned along the fan
+    # normal of the points. Points that fix no plane leave [0, 0, 1, 0].
+    def fit_plane_to_points(*args)
+      if args.size == 1
+        a = args[0]
+        raise TypeError, "wrong argument type #{a.nil? ? 'nil' : a.class} (expected Array)" unless a.is_a?(Array)
+        return fit_plane_to_points(*a)
       end
-      cov = Array.new(3) { Array.new(3, 0.0) }
+      raise ArgumentError, 'At least three points needed to fit a plane' if args.size < 3
+      ps = args.map { |p| G.pt(p) }
+      plane = [0.0, 0.0, 1.0, 0.0]
+      tx = ty = tz = 0.0
+      ps.each { |p| tx += p[0]; ty += p[1]; tz += p[2] }
+      inv = 1.0 / ps.size
+      n = sx = sy = sz = sxx = syy = szz = sxy = sxz = syz = 0.0
       ps.each do |p|
-        d = G.sub(p, c)
-        3.times { |i| 3.times { |j| cov[i][j] += d[i] * d[j] } }
+        n += 1.0
+        dx = p[0] - tx * inv
+        dz = p[2] - tz * inv
+        dy = p[1] - ty * inv
+        sx += dx
+        sxx += dx * dx
+        syy += dy * dy
+        sy += dy
+        sz += dz
+        sxz += dz * dx
+        syz += dz * dy
+        szz += dz * dz
+        sxy += dy * dx
       end
-      n = G.smallest_eigenvector(cov)
-      n = G.unit(nw) if n.nil? || G.len(n).zero?
-      n = G.scale(n, -1.0) if G.dot(n, nw) < 0
-      [n[0], n[1], n[2], -G.dot(n, c)]
+      fit = G.fit_plane_sums(n, sx, sy, sz, sxx, syy, szz, sxy, sxz, syz)
+      return plane unless fit
+      plane = fit
+      plane[3] -= tx * inv * plane[0] + plane[1] * ty * inv + plane[2] * tz * inv
+      o = ps[0]
+      nw = [0.0, 0.0, 0.0]
+      prev = G.sub(ps[1], o)
+      ps[2..].each do |p|
+        cur = G.sub(p, o)
+        nw[0] += prev[1] * cur[2] - prev[2] * cur[1]
+        nw[1] += prev[2] * cur[0] - prev[0] * cur[2]
+        nw[2] += prev[0] * cur[1] - prev[1] * cur[0]
+        prev = cur
+      end
+      plane = plane.map { |c| -c } if nw[1] * plane[1] + nw[0] * plane[0] + nw[2] * plane[2] < 0.0
+      plane
     end
 
     def linear_combination(w1, x1, w2, x2)
@@ -1396,92 +1455,88 @@ module Esq
   module G
     module_function
 
-    # Smallest-eigenvalue eigenvector of a symmetric 3x3 (Jacobi iterations).
-    def smallest_eigenvector(m)
-      a = m.map(&:dup)
-      v = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
-      50.times do
-        p, q = [[0, 1], [0, 2], [1, 2]].max_by { |i, j| a[i][j].abs }
-        break if a[p][q].abs < 1e-14
-        theta = (a[q][q] - a[p][p]) / (2.0 * a[p][q])
-        t = (theta.negative? ? -1.0 : 1.0) / (theta.abs + Math.sqrt(theta * theta + 1.0))
-        c = 1.0 / Math.sqrt(t * t + 1.0)
-        s = t * c
-        3.times do |k|
-          akp = a[k][p]
-          akq = a[k][q]
-          a[k][p] = c * akp - s * akq
-          a[k][q] = s * akp + c * akq
+    # the quaternion [x, y, z, w] of the 3×3 part of a column-major 4×4, read
+    # as a rotation whatever it is (a mirror gives some rotation), then made unit.
+    def su_quat(m)
+      p0, p1, p2, p3, p4, p5, p6, p7, p8 = m[0], m[4], m[8], m[1], m[5], m[9], m[2], m[6], m[10]
+      root = ->(v) { v < 0 ? Float::NAN : Math.sqrt(v) }
+      tr = p0 + 1.0 + p4 + p8
+      if tr > 1e-9
+        s = root.(tr) * 2.0
+        x, y, z, w = (p7 - p5) / s, (p2 - p6) / s, (p3 - p1) / s, s * 0.25
+      elsif p0 <= p4 || p0 <= p8
+        if p4 <= p8
+          s = root.(((p8 + 1.0) - p0) - p4) * 2.0
+          x, y, z, w = (p2 + p6) / s, (p5 + p7) / s, s * 0.25, (p3 - p1) / s
+        else
+          s = root.(((p4 + 1.0) - p0) - p8) * 2.0
+          x, y, z, w = (p1 + p3) / s, s * 0.25, (p5 + p7) / s, (p2 - p6) / s
         end
-        3.times do |k|
-          apk = a[p][k]
-          aqk = a[q][k]
-          a[p][k] = c * apk - s * aqk
-          a[q][k] = s * apk + c * aqk
-        end
-        3.times do |k|
-          vkp = v[k][p]
-          vkq = v[k][q]
-          v[k][p] = c * vkp - s * vkq
-          v[k][q] = s * vkp + c * vkq
-        end
-      end
-      i = (0..2).min_by { |k| a[k][k] }
-      unit([v[0][i], v[1][i], v[2][i]])
-    end
-
-    # 4x4 column-major -> [scale(3), quaternion(x,y,z,w), translation(3)]
-    def decompose(m)
-      sx = len(m[0, 3])
-      sy = len(m[4, 3])
-      sz = len(m[8, 3])
-      det = dot(m[0, 3], cross(m[4, 3], m[8, 3]))
-      sx = -sx if det < 0
-      c0 = sx.zero? ? [1.0, 0.0, 0.0] : scale(m[0, 3], 1.0 / sx)
-      c1 = sy.zero? ? [0.0, 1.0, 0.0] : scale(m[4, 3], 1.0 / sy)
-      c2 = sz.zero? ? [0.0, 0.0, 1.0] : scale(m[8, 3], 1.0 / sz)
-      [[sx, sy, sz], quat(c0, c1, c2), m[12, 3]]
-    end
-
-    def quat(c0, c1, c2)
-      tr = c0[0] + c1[1] + c2[2]
-      if tr > 0
-        s = Math.sqrt(tr + 1.0) * 2
-        [(c1[2] - c2[1]) / s, (c2[0] - c0[2]) / s, (c0[1] - c1[0]) / s, 0.25 * s]
-      elsif c0[0] > c1[1] && c0[0] > c2[2]
-        s = Math.sqrt(1.0 + c0[0] - c1[1] - c2[2]) * 2
-        [0.25 * s, (c1[0] + c0[1]) / s, (c2[0] + c0[2]) / s, (c1[2] - c2[1]) / s]
-      elsif c1[1] > c2[2]
-        s = Math.sqrt(1.0 + c1[1] - c0[0] - c2[2]) * 2
-        [(c1[0] + c0[1]) / s, 0.25 * s, (c2[1] + c1[2]) / s, (c2[0] - c0[2]) / s]
       else
-        s = Math.sqrt(1.0 + c2[2] - c0[0] - c1[1]) * 2
-        [(c2[0] + c0[2]) / s, (c2[1] + c1[2]) / s, 0.25 * s, (c0[1] - c1[0]) / s]
+        s = root.(((p0 + 1.0) - p4) - p8) * 2.0
+        x, y, z, w = s * 0.25, (p1 + p3) / s, (p2 + p6) / s, (p7 - p5) / s
       end
+      n = root.(y * y + x * x + z * z + w * w)
+      [x / n, y / n, z / n, w / n]
     end
 
-    def slerp(a, b, t)
-      d = a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
-      b = b.map { |v| -v } if d < 0
-      d = d.abs
-      if d > 0.9995
-        q = (0..3).map { |i| a[i] + (b[i] - a[i]) * t }
+    # SketchUp's slerp of two quaternions [x, y, z, w].
+    def su_slerp(q1, q2, t)
+      dot = q2[1] * q1[1] + q2[0] * q1[0] + q2[2] * q1[2] + q2[3] * q1[3]
+      if dot < 0.0
+        dot = -dot
+        q1 = q1.map { |c| -c }
+      end
+      u = 1.0 - t
+      if dot + 1.0 <= 1e-6
+        s0 = Math.sin(u * 1.570796326794896)
+        s1 = Math.sin(t * 1.570796326794896)
+        return [s0 * q1[0] - s1 * q2[1], s1 * q2[0] + s0 * q1[1], s0 * q1[2] - s1 * q2[3], s1 * q2[2] + s0 * q1[3]]
+      end
+      a = u
+      b = t
+      if 1e-6 < 1.0 - dot
+        om = Math.acos(dot)
+        so = Math.sin(om)
+        a = Math.sin(om * u) / so
+        b = Math.sin(om * t) / so
+      end
+      [q2[0] * b + a * q1[0], a * q1[1] + q2[1] * b, q2[2] * b + a * q1[2], a * q1[3] + q2[3] * b]
+    end
+
+    # the plane of centred sums (n points), the coordinate of the largest 2×2
+    # determinant taken as 1 and the two others solved; nil when every determinant is below
+    # 1e-10 (points that fix no plane).
+    def fit_plane_sums(n, sx, sy, sz, sxx, syy, szz, sxy, sxz, syz)
+      cxx = sxx - sx * sx / n
+      cyy = syy - sy * sy / n
+      czz = szz - sz * sz / n
+      cxy = sxy - sy * sx / n
+      cxz = sxz - sz * sx / n
+      cyz = syz - sz * sy / n
+      dz = cyy * cxx - cxy * cxy
+      dy = czz * cxx - cxz * cxz
+      dx = czz * cyy - cyz * cyz
+      if dz.abs < dy.abs || dz.abs < dx.abs
+        if dy.abs < dx.abs
+          return nil if dx.abs < 1e-10
+          a = 1.0
+          b = -(cxy * czz - cyz * cxz) / dx
+          c = -(cxz * cyy - cyz * cxy) / dx
+        else
+          return nil if dy.abs < 1e-10
+          a = -(cxy * czz - cyz * cxz) / dy
+          b = 1.0
+          c = -(cyz * cxx - cxz * cxy) / dy
+        end
       else
-        th = Math.acos(d)
-        s0 = Math.sin((1 - t) * th) / Math.sin(th)
-        s1 = Math.sin(t * th) / Math.sin(th)
-        q = (0..3).map { |i| a[i] * s0 + b[i] * s1 }
+        return nil if dz.abs < 1e-10
+        a = -(cxz * cyy - cyz * cxy) / dz
+        b = -(cyz * cxx - cxz * cxy) / dz
+        c = 1.0
       end
-      l = Math.sqrt(q.sum { |v| v * v })
-      q.map { |v| v / l }
-    end
-
-    def compose(s, q, t)
-      x, y, z, w = q
-      r0 = [1 - 2 * (y * y + z * z), 2 * (x * y + z * w), 2 * (x * z - y * w)]
-      r1 = [2 * (x * y - z * w), 1 - 2 * (x * x + z * z), 2 * (y * z + x * w)]
-      r2 = [2 * (x * z + y * w), 2 * (y * z - x * w), 1 - 2 * (x * x + y * y)]
-      [*scale(r0, s[0]), 0.0, *scale(r1, s[1]), 0.0, *scale(r2, s[2]), 0.0, t[0], t[1], t[2], 1.0]
+      len = Math.sqrt(b * b + a * a + c * c)
+      [a / len, b / len, c / len, -(sy * b + sx * a + sz * c) / n / len]
     end
   end
 end
@@ -1498,11 +1553,14 @@ class Array
   def y=(v); self[1] = v; end
   def z=(v); self[2] = v; end
 
+  # 2D only when both sides are: a 2D array
+  # with a Point3d or a Vector3d is read as 3D (z = 0).
+  def __p2?(o); o.is_a?(Geom::Point2d) || (o.is_a?(Array) && o.size == 2 && Esq::G.numbers?(o)); end
+  def __v2?(o); o.is_a?(Geom::Vector2d) || (o.is_a?(Array) && o.size == 2 && Esq::G.numbers?(o)); end
+  private :__p2?, :__v2?
+
   def distance(o)
-    if __g2?
-      a = Geom::Point2d.new(self)
-      return a.distance(o)
-    end
+    return Geom::Point2d.new(self).distance(o) if __p2?(self) && __p2?(o)
     Length.new(Esq::G.len(Esq::G.sub(Esq::G.pt(o), Esq::G.pt(self))))
   end
 
@@ -1525,8 +1583,8 @@ class Array
   end
 
   def dot(o)
-    return Geom::Vector2d.new(self).dot(o) if __g2?
-    Geom::Vector3d.new(self).dot(o)
+    return Geom::Vector2d.new(self).dot(o) if __v2?(self) && __v2?(o)
+    Geom::Vector3d.new(Esq::G.vec(self)).dot(o)
   end
 
   def cross(o)
@@ -1546,8 +1604,9 @@ class Array
   end
 
   def offset(*args)
-    return Geom::Point2d.new(self).offset(*args).to_a if __g2?
-    Geom::Point3d.new(self).offset(*args).to_a
+    raise ArgumentError, 'Wrong number of arguments: requires 1 or 2' if args.empty?
+    return Geom::Point2d.new(self).offset(*args).to_a if __p2?(self) && __v2?(args[0])
+    Geom::Point3d.new(Esq::G.pt(self)).offset(*args).to_a
   end
 
   def offset!(*args)

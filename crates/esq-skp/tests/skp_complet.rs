@@ -1074,3 +1074,79 @@ fn glued_components_go_through_every_version() {
         }
     }
 }
+
+/// An image glued to a face and a component glued to that image (`Image#glued_to`, TestUp
+/// glued_images.skp, glued_instances.skp): images take part in the relationships like the
+/// instances they are, read and written.
+#[test]
+fn images_glue_and_are_glued_to() {
+    use esq_core::glam::{DMat4, DVec3};
+    use esq_core::model::{GlueRef, Model};
+    let mut m = Model::new();
+    let pts =
+        [DVec3::ZERO, DVec3::new(1000.0, 0.0, 0.0), DVec3::new(1000.0, 1000.0, 0.0), DVec3::new(0.0, 1000.0, 0.0)];
+    m.root.add_polyline(&pts, true, false);
+    let face = m.root.faces.keys().next().expect("une face");
+    let mut png = std::io::Cursor::new(Vec::new());
+    image::RgbImage::from_pixel(8, 4, image::Rgb([10, 20, 30])).write_to(&mut png, image::ImageFormat::Png).unwrap();
+    let tex = esq_core::meta::TextureData {
+        filename: "plan.png".into(),
+        image: esq_core::photo::Blob(std::sync::Arc::new(png.into_inner())),
+        px: [8, 4],
+        size: [0.0, 0.0],
+        avg: [10, 20, 30],
+    };
+    let img = m.add_image(None, "plan", "plan.png", tex, DVec3::new(10.0, 10.0, 0.0), DVec3::X, DVec3::Z, 400.0, None);
+    let img = img.expect("une image");
+    let mut inner = esq_core::model::Entities::default();
+    inner.add_polyline(&[DVec3::ZERO, DVec3::new(100.0, 0.0, 0.0), DVec3::new(100.0, 100.0, 0.0)], true, false);
+    let d = m.defs.insert(esq_core::model::Definition {
+        name: "Cale".into(),
+        is_group: false,
+        description: String::new(),
+        attributes: Default::default(),
+        ext: Default::default(),
+        entities: inner,
+    });
+    let comp = m.root.instances.insert(esq_core::model::Instance {
+        def: d,
+        xform: DMat4::from_translation(DVec3::new(50.0, 50.0, 0.0)),
+        name: String::new(),
+        material: None,
+        layer: 0,
+        hidden: false,
+        locked: false,
+        attributes: Default::default(),
+        ext: Default::default(),
+    });
+    m.root.instances[img].ext.glued_to = Some(GlueRef::Face(face));
+    m.root.instances[comp].ext.glued_to = Some(GlueRef::Instance(img));
+    for v in SkpVersion::ALL.into_iter().filter(|v| v.major() >= 3) {
+        let bytes = esq_skp::native::write::write(&m, None, Some(v), &Default::default()).unwrap();
+        let (back, _) = esq_skp::native::read_bytes(&bytes).unwrap();
+        let is_image = |i: &esq_core::model::Instance| back.defs.get(i.def).is_some_and(|d| d.ext.image.is_some());
+        let (img, comp): (Vec<_>, Vec<_>) = back.root.instances.iter().partition(|(_, i)| is_image(i));
+        assert_eq!((img.len(), comp.len()), (1, 1), "{v:?}");
+        assert!(
+            matches!(img[0].1.ext.glued_to, Some(GlueRef::Face(f)) if back.root.faces.contains_key(f)),
+            "{v:?} {:?} {:?}",
+            img[0].1.ext.glued_to,
+            comp[0].1.ext.glued_to
+        );
+        assert_eq!(comp[0].1.ext.glued_to, Some(GlueRef::Instance(img[0].0)), "{v:?}");
+    }
+}
+
+/// The colour of a material keeps the alpha byte the file stores: SketchUp 2015 saved 0 for a
+/// textured material (TestUp MaterialTests.skp, `Material#color` [144, 143, 146, 0]); an opaque
+/// colour leaves none.
+#[test]
+fn a_materials_colour_keeps_its_stored_alpha() {
+    let Some(dir) = corpus_dir() else { return };
+    let path = dir.join("SketchUp_testup-2").join("2de750a4_MaterialTests.skp");
+    let Ok(bytes) = std::fs::read(&path) else { return };
+    let (m, _) = esq_skp::native::read_bytes(&bytes).unwrap();
+    let alpha = |n: &str| m.materials.values().find(|x| x.name == n).map(|x| x.ext.color_alpha);
+    assert_eq!(alpha("Textured"), Some(Some(0)));
+    assert_eq!(alpha("Solid"), Some(None));
+}
